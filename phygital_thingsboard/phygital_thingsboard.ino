@@ -1,7 +1,9 @@
-// 3 Radars (DFRobot C4002) + Microphone (INMP441) + RGB LED
+// 3 Radars (DFRobot C4002) + Microphone (INMP441) + RGB LED + ThingsBoard
 // LED shows WHICH radar senses motion:
 //   Radar 1 only -> RED, Radar 2 only -> GREEN, both -> BLUE, none -> OFF
 // Requires the packed-struct fix in DFRobot_C4002.h
+//
+// Board: ESP32 Dev Module (pins below are unchanged from the original sketch)
 //
 // Radar 1: TX->D35, RX->D14   [UART1, full data]
 // Radar 2: TX->D34, RX->D26   [UART2, full data]
@@ -15,9 +17,34 @@
 //      Green -> 220R -> D18
 //      Blue  -> 220R -> D19
 //      Common (longest leg) -> GND
+//
+// Sends readings to ThingsBoard in one of two ways (set USE_WIFI below):
+//   USE_WIFI = true  -> Wi-Fi + MQTT straight to ThingsBoard
+//   USE_WIFI = false -> USB: prints JSON lines ("TB:" / "TBA:") that
+//                       usb_bridge.py on your computer forwards to ThingsBoard
+// Extra libraries (Library Manager): PubSubClient (Nick O'Leary), ArduinoJson v7 (Benoit Blanchon)
 #include <ESP_I2S.h>
 #include <arduinoFFT.h>
 #include "DFRobot_C4002.h"
+#include <WiFi.h>
+#include <PubSubClient.h>
+#include <ArduinoJson.h>
+
+// ================= HOW TO SEND DATA =================
+const bool USE_WIFI = false;   // false = USB bridge (usb_bridge.py), true = Wi-Fi
+
+// ================= THINGSBOARD SETTINGS (Wi-Fi mode only) =================
+const char* WIFI_SSID = "graceiphone";                // 2.4 GHz network only
+const char* WIFI_PASS = "melcher1313";
+const char* TB_HOST   = "mqtt.thingsboard.cloud";   // Europe: "mqtt.eu.thingsboard.cloud"
+const char* TB_TOKEN  = "zp43zslz5uf8nyh2sdxn";        // device page -> Manage credentials
+const uint16_t TB_PORT = 1883;
+const char* FW_VERSION = "0.2.0-devmodule";
+
+const unsigned long PUBLISH_MS   = 1000;    // check for changes once per second
+const unsigned long HEARTBEAT_MS = 30000;   // send everything every 30 s
+// Between heartbeats, a value is only sent when it changes. This keeps
+// ThingsBoard data-point use low (the Free plan allows ~1 million per month).
 
 // Radar data holder (must be at the top for Arduino IDE)
 struct RadarInfo {
@@ -131,6 +158,11 @@ ArduinoFFT<float> FFT(vReal, vImag, N, SAMPLE_RATE);
 int   micLevel = 0;
 float micPeakHz = 0;
 
+// Loudest sound since the last ThingsBoard publish (kept separately because
+// micLevel is reset every 0.25 s by the Serial printout)
+int   pubMicLevel = 0;
+float pubMicHz = 0;
+
 int channelRMS(int ch) {
   double mean = 0, e = 0;
   for (int i = 0; i < N; i++) mean += (micBuf[2 * i + ch] >> 14);
@@ -158,6 +190,126 @@ void readMic() {
   FFT.compute(FFTDirection::Forward);
   FFT.complexToMagnitude();
   micPeakHz = FFT.majorPeak();
+}
+
+// ================= THINGSBOARD =================
+WiFiClient net;
+PubSubClient mqtt(net);
+JsonDocument lastSent;                // last value sent for each key
+unsigned long lastPublish = 0, lastHeartbeat = 0, lastMqttTry = 0;
+bool wifiAnnounced = false;
+String macStr = "";                  // read once at startup
+
+// Send one JSON message: over MQTT (Wi-Fi mode) or as a tagged line on USB
+void sendJson(bool isAttributes, const char* buf, size_t n) {
+  if (USE_WIFI) {
+    if (!mqtt.connected()) return;
+    mqtt.publish(isAttributes ? "v1/devices/me/attributes" : "v1/devices/me/telemetry", (const uint8_t*)buf, n);
+  } else {
+    Serial.print(isAttributes ? "TBA:" : "TB:");   // usb_bridge.py looks for these prefixes
+    Serial.write((const uint8_t*)buf, n);
+    Serial.println();
+  }
+}
+
+// Number codes -> words the dashboard can show
+const char* stateWord(const RadarInfo &r) {
+  if (!r.online) return "offline";
+  if (millis() - r.updated > 3000) return "no_data";
+  return r.state == 2 ? "moving" : r.state == 1 ? "still" : "none";
+}
+const char* dirWord(int d)   { return d == 2 ? "approach" : d == 0 ? "away" : "none"; }
+const char* ledWord(LedColor c) { return c == RED ? "red" : c == GREEN ? "green" : c == BLUE ? "blue" : "off"; }
+const char* micWord(int lvl) { return lvl >= LOUD_ABOVE ? "loud" : lvl >= QUIET_BELOW ? "sound" : "quiet"; }
+
+// Add a key only if it changed since last sent (or on a heartbeat)
+template <typename T>
+void addIfChanged(JsonDocument &doc, const char* key, T value, bool full) {
+  if (full || lastSent[key].isNull() || lastSent[key] != value) {
+    doc[key] = value;
+    lastSent[key] = value;
+  }
+}
+float round2(float v) { return roundf(v * 100) / 100; }
+
+void addRadar(JsonDocument &doc, const char* prefix, const RadarInfo &r, bool full) {
+  char k[24];
+  const char* st = stateWord(r);
+  snprintf(k, sizeof(k), "%s_state", prefix);   addIfChanged(doc, k, st, full);
+  if (strcmp(st, "moving") != 0 && strcmp(st, "still") != 0) return;   // no target: skip numbers
+  snprintf(k, sizeof(k), "%s_dist_m", prefix);    addIfChanged(doc, k, round2(r.dist), full);
+  snprintf(k, sizeof(k), "%s_speed_mps", prefix); addIfChanged(doc, k, round2(r.speed), full);
+  snprintf(k, sizeof(k), "%s_dir", prefix);       addIfChanged(doc, k, dirWord(r.dir), full);
+  if (full) { snprintf(k, sizeof(k), "%s_energy", prefix); doc[k] = r.energy; }
+}
+
+void publishTelemetry(bool r3, bool full) {
+  JsonDocument doc;
+  addRadar(doc, "r1", r1, full);
+  addRadar(doc, "r2", r2, full);
+  addIfChanged(doc, "r3_detected", r3 ? 1 : 0, full);
+  addIfChanged(doc, "mic_state", micWord(pubMicLevel), full);
+  // Raw RMS level (not decibels). Sent when it moves by 25+ or on a heartbeat.
+  if (full || abs(pubMicLevel - (int)(lastSent["mic_level"] | 0)) >= 25) {
+    doc["mic_level"] = pubMicLevel;
+    doc["mic_peak_hz"] = (int)pubMicHz;
+    lastSent["mic_level"] = pubMicLevel;
+  }
+  addIfChanged(doc, "led", ledWord(currentColor), full);
+
+  pubMicLevel = 0; pubMicHz = 0;
+  if (doc.size() == 0) return;
+  char buf[768];
+  size_t n = serializeJson(doc, buf, sizeof(buf));
+  sendJson(false, buf, n);
+}
+
+void sendClientAttributes() {
+  JsonDocument doc;
+  doc["firmware"] = FW_VERSION;
+  doc["board"] = "ESP32 Dev Module";
+  doc["transport"] = USE_WIFI ? "wifi_mqtt" : "usb_bridge";
+  doc["mac_address"] = macStr;
+  if (USE_WIFI) doc["wifi_rssi_dbm"] = WiFi.RSSI();
+  doc["radar1_online"] = r1.online;
+  doc["radar2_online"] = r2.online;
+  doc["radar3_mode"] = "out_pin_detect_only";
+  char buf[320];
+  size_t n = serializeJson(doc, buf, sizeof(buf));
+  sendJson(true, buf, n);
+}
+
+// Never blocks for long, so radars, mic and LED keep running while offline
+void keepConnected() {
+  if (WiFi.status() != WL_CONNECTED) {            // auto-reconnect handles it
+    wifiAnnounced = false;
+    static unsigned long lastWifiMsg = 0;
+    if (millis() - lastWifiMsg > 5000) {
+      lastWifiMsg = millis();
+      int s = WiFi.status();
+      const char* why = s == WL_NO_SSID_AVAIL   ? "network not found (wrong name, or 5 GHz only)" :
+                        s == WL_CONNECT_FAILED  ? "connect failed (wrong password?)" :
+                        s == WL_DISCONNECTED    ? "not connected yet (often a wrong password)" :
+                        s == WL_CONNECTION_LOST ? "connection lost" : "trying";
+      Serial.printf("Wi-Fi: NOT connected, status %d - %s\n", s, why);
+    }
+    return;
+  }
+  if (!wifiAnnounced) {
+    wifiAnnounced = true;
+    Serial.printf("Wi-Fi connected, IP %s, signal %d dBm\n", WiFi.localIP().toString().c_str(), WiFi.RSSI());
+  }
+  if (mqtt.connected()) { mqtt.loop(); return; }
+  if (millis() - lastMqttTry < 5000) return;     // retry every 5 s
+  lastMqttTry = millis();
+  Serial.print("ThingsBoard: connecting... ");
+  if (mqtt.connect("phygital-devmodule", TB_TOKEN, nullptr)) {   // token is the username
+    Serial.println("connected.");
+    sendClientAttributes();
+    lastSent.clear();                             // force a full send next
+  } else {
+    Serial.printf("failed (state %d). Check host and token.\n", mqtt.state());
+  }
 }
 
 // ================= SETUP =================
@@ -194,6 +346,26 @@ void setup() {
   r2.online = setupRadar(radar2, "Radar 2");
   pinMode(RADAR3_OUT, INPUT);
   Serial.println("Radar 3 on OUT pin (detect only).");
+
+  // Board's Wi-Fi MAC address (needed to register on networks like Harvard IoT)
+  WiFi.mode(WIFI_STA);
+  delay(100);
+  macStr = WiFi.macAddress();
+  Serial.printf("Wi-Fi MAC address: %s\n", macStr.c_str());
+
+  if (USE_WIFI) {
+    // Wi-Fi + ThingsBoard (connects in the background)
+    WiFi.setAutoReconnect(true);
+    WiFi.begin(WIFI_SSID, WIFI_PASS);
+    mqtt.setServer(TB_HOST, TB_PORT);
+    mqtt.setBufferSize(1024);          // default 256 bytes is too small
+    mqtt.setSocketTimeout(2);          // don't stall the sensors for long
+    Serial.println("Wi-Fi: connecting in the background...");
+  } else {
+    WiFi.mode(WIFI_OFF);               // USB mode: radio off
+    Serial.println("USB mode: run usb_bridge.py on your computer to forward data to ThingsBoard.");
+    sendClientAttributes();
+  }
 
   Serial.println();
   Serial.println("LED: Radar 1 = RED, Radar 2 = GREEN, both = BLUE");
@@ -236,6 +408,20 @@ void loop() {
                           r2Sees ? "RADAR 2  " : "none     ";
     Serial.printf("Sensing: %s | Radar 1: %s| Radar 2: %s| Radar 3: %s | Mic: %s\n",
                   sensing, t1, t2, r3 ? "DETECTED" : "nothing ", mic);
+    // Remember the loudest sound for the next ThingsBoard message
+    if (micLevel > pubMicLevel) { pubMicLevel = micLevel; pubMicHz = micPeakHz; }
     micLevel = 0;
+  }
+
+  // ---- ThingsBoard ----
+  if (USE_WIFI) keepConnected();
+  if (millis() - lastPublish >= PUBLISH_MS) {
+    lastPublish = millis();
+    bool full = millis() - lastHeartbeat >= HEARTBEAT_MS;
+    if (full) {
+      lastHeartbeat = millis();
+      if (!USE_WIFI) sendClientAttributes();   // bridge may have started late
+    }
+    publishTelemetry(r3, full);
   }
 }

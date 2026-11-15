@@ -1,0 +1,489 @@
+{
+  "title": "Phygital Digital Twin",
+  "configuration": {
+    "description": "Live view of the phygital sensor hub (3 C4002 radars, mic, LED).",
+    "widgets": {
+      "5e62d94c-7003-4c1d-8329-e903824fc66b": {
+        "typeFullFqn": "system.cards.attributes_card",
+        "type": "latest",
+        "sizeX": 8,
+        "sizeY": 6,
+        "row": 0,
+        "col": 0,
+        "id": "5e62d94c-7003-4c1d-8329-e903824fc66b",
+        "config": {
+          "datasources": [
+            {
+              "type": "entity",
+              "entityAliasId": "50518ee7-f764-49ee-8970-1e6a21b27bde",
+              "dataKeys": [
+                {
+                  "name": "r1_state",
+                  "type": "timeseries",
+                  "label": "Radar 1",
+                  "color": "#2196f3",
+                  "settings": {},
+                  "_hash": 0.9590363779029397
+                },
+                {
+                  "name": "r1_dir",
+                  "type": "timeseries",
+                  "label": "Radar 1 direction",
+                  "color": "#2196f3",
+                  "settings": {},
+                  "_hash": 0.8879075697243538
+                },
+                {
+                  "name": "r1_dist_m",
+                  "type": "timeseries",
+                  "label": "Radar 1 distance",
+                  "color": "#2196f3",
+                  "settings": {},
+                  "_hash": 0.999973122309007,
+                  "units": "m",
+                  "decimals": 2
+                },
+                {
+                  "name": "r2_state",
+                  "type": "timeseries",
+                  "label": "Radar 2",
+                  "color": "#4caf50",
+                  "settings": {},
+                  "_hash": 0.3759674199361388
+                },
+                {
+                  "name": "r2_dir",
+                  "type": "timeseries",
+                  "label": "Radar 2 direction",
+                  "color": "#4caf50",
+                  "settings": {},
+                  "_hash": 0.36993518694959626
+                },
+                {
+                  "name": "r2_dist_m",
+                  "type": "timeseries",
+                  "label": "Radar 2 distance",
+                  "color": "#4caf50",
+                  "settings": {},
+                  "_hash": 0.4962775769721872,
+                  "units": "m",
+                  "decimals": 2
+                },
+                {
+                  "name": "r3_detected",
+                  "type": "timeseries",
+                  "label": "Radar 3 detected",
+                  "color": "#ff9800",
+                  "settings": {},
+                  "_hash": 0.5261095032860162
+                },
+                {
+                  "name": "mic_state",
+                  "type": "timeseries",
+                  "label": "Mic",
+                  "color": "#9c27b0",
+                  "settings": {},
+                  "_hash": 0.4863564947107678
+                },
+                {
+                  "name": "led",
+                  "type": "timeseries",
+                  "label": "LED",
+                  "color": "#f44336",
+                  "settings": {},
+                  "_hash": 0.6978034156415129
+                }
+              ]
+            }
+          ],
+          "timewindow": {
+            "realtime": {
+              "realtimeType": 0,
+              "interval": 1000,
+              "timewindowMs": 600000,
+              "quickInterval": "CURRENT_DAY"
+            },
+            "history": {
+              "historyType": 0,
+              "interval": 1000,
+              "timewindowMs": 600000,
+              "quickInterval": "CURRENT_DAY"
+            },
+            "aggregation": {
+              "type": "NONE",
+              "limit": 25000
+            },
+            "selectedTab": 0,
+            "displayValue": ""
+          },
+          "useDashboardTimewindow": true,
+          "displayTimewindow": true,
+          "showTitle": true,
+          "title": "Live status",
+          "backgroundColor": "#ffffff",
+          "color": "rgba(0, 0, 0, 0.87)",
+          "padding": "8px",
+          "settings": {},
+          "dropShadow": true,
+          "enableFullscreen": true,
+          "showLegend": false,
+          "widgetStyle": {},
+          "titleStyle": {
+            "fontSize": "16px",
+            "fontWeight": 400
+          },
+          "actions": {},
+          "configMode": "advanced",
+          "enableDataExport": true
+        }
+      },
+      "b67b6738-9a1f-4a71-a7b8-b3b500cc0b21": {
+        "typeFullFqn": "system.time_series_chart",
+        "type": "timeseries",
+        "sizeX": 16,
+        "sizeY": 6,
+        "row": 0,
+        "col": 0,
+        "id": "b67b6738-9a1f-4a71-a7b8-b3b500cc0b21",
+        "config": {
+          "datasources": [
+            {
+              "type": "entity",
+              "entityAliasId": "50518ee7-f764-49ee-8970-1e6a21b27bde",
+              "dataKeys": [
+                {
+                  "name": "r1_dist_m",
+                  "type": "timeseries",
+                  "label": "Radar 1",
+                  "color": "#2196f3",
+                  "settings": {},
+                  "_hash": 0.3290200060723011,
+                  "units": "m",
+                  "decimals": 2
+                },
+                {
+                  "name": "r2_dist_m",
+                  "type": "timeseries",
+                  "label": "Radar 2",
+                  "color": "#4caf50",
+                  "settings": {},
+                  "_hash": 0.6523189027468719,
+                  "units": "m",
+                  "decimals": 2
+                }
+              ]
+            }
+          ],
+          "timewindow": {
+            "realtime": {
+              "realtimeType": 0,
+              "interval": 1000,
+              "timewindowMs": 600000,
+              "quickInterval": "CURRENT_DAY"
+            },
+            "history": {
+              "historyType": 0,
+              "interval": 1000,
+              "timewindowMs": 600000,
+              "quickInterval": "CURRENT_DAY"
+            },
+            "aggregation": {
+              "type": "NONE",
+              "limit": 25000
+            },
+            "selectedTab": 0,
+            "displayValue": ""
+          },
+          "useDashboardTimewindow": true,
+          "displayTimewindow": true,
+          "showTitle": true,
+          "title": "Target distance by radar",
+          "backgroundColor": "#ffffff",
+          "color": "rgba(0, 0, 0, 0.87)",
+          "padding": "8px",
+          "settings": {},
+          "dropShadow": true,
+          "enableFullscreen": true,
+          "showLegend": true,
+          "widgetStyle": {},
+          "titleStyle": {
+            "fontSize": "16px",
+            "fontWeight": 400
+          },
+          "actions": {},
+          "configMode": "advanced",
+          "enableDataExport": true
+        }
+      },
+      "bf3f196c-fce4-46b0-b2c8-e4bb20ff2f0d": {
+        "typeFullFqn": "system.time_series_chart",
+        "type": "timeseries",
+        "sizeX": 16,
+        "sizeY": 5,
+        "row": 0,
+        "col": 0,
+        "id": "bf3f196c-fce4-46b0-b2c8-e4bb20ff2f0d",
+        "config": {
+          "datasources": [
+            {
+              "type": "entity",
+              "entityAliasId": "50518ee7-f764-49ee-8970-1e6a21b27bde",
+              "dataKeys": [
+                {
+                  "name": "mic_level",
+                  "type": "timeseries",
+                  "label": "Mic level",
+                  "color": "#9c27b0",
+                  "settings": {},
+                  "_hash": 0.12679989155099358,
+                  "decimals": 0
+                }
+              ]
+            }
+          ],
+          "timewindow": {
+            "realtime": {
+              "realtimeType": 0,
+              "interval": 1000,
+              "timewindowMs": 600000,
+              "quickInterval": "CURRENT_DAY"
+            },
+            "history": {
+              "historyType": 0,
+              "interval": 1000,
+              "timewindowMs": 600000,
+              "quickInterval": "CURRENT_DAY"
+            },
+            "aggregation": {
+              "type": "NONE",
+              "limit": 25000
+            },
+            "selectedTab": 0,
+            "displayValue": ""
+          },
+          "useDashboardTimewindow": true,
+          "displayTimewindow": true,
+          "showTitle": true,
+          "title": "Mic level (raw, not dB)",
+          "backgroundColor": "#ffffff",
+          "color": "rgba(0, 0, 0, 0.87)",
+          "padding": "8px",
+          "settings": {},
+          "dropShadow": true,
+          "enableFullscreen": true,
+          "showLegend": true,
+          "widgetStyle": {},
+          "titleStyle": {
+            "fontSize": "16px",
+            "fontWeight": 400
+          },
+          "actions": {},
+          "configMode": "advanced",
+          "enableDataExport": true
+        }
+      },
+      "719ff078-b764-415d-b578-5fa0ffd17e19": {
+        "typeFullFqn": "system.cards.attributes_card",
+        "type": "latest",
+        "sizeX": 8,
+        "sizeY": 5,
+        "row": 0,
+        "col": 0,
+        "id": "719ff078-b764-415d-b578-5fa0ffd17e19",
+        "config": {
+          "datasources": [
+            {
+              "type": "entity",
+              "entityAliasId": "50518ee7-f764-49ee-8970-1e6a21b27bde",
+              "dataKeys": [
+                {
+                  "name": "transport",
+                  "type": "attribute",
+                  "label": "Transport",
+                  "color": "#607d8b",
+                  "settings": {},
+                  "_hash": 0.5921434231321877
+                },
+                {
+                  "name": "mac_address",
+                  "type": "attribute",
+                  "label": "MAC address",
+                  "color": "#607d8b",
+                  "settings": {},
+                  "_hash": 0.509712923589562
+                },
+                {
+                  "name": "firmware",
+                  "type": "attribute",
+                  "label": "Firmware",
+                  "color": "#607d8b",
+                  "settings": {},
+                  "_hash": 0.9753831767174925
+                },
+                {
+                  "name": "board",
+                  "type": "attribute",
+                  "label": "Board",
+                  "color": "#607d8b",
+                  "settings": {},
+                  "_hash": 0.8894938713417273
+                },
+                {
+                  "name": "radar1_online",
+                  "type": "attribute",
+                  "label": "Radar 1 online",
+                  "color": "#607d8b",
+                  "settings": {},
+                  "_hash": 0.4828853479207561
+                },
+                {
+                  "name": "radar2_online",
+                  "type": "attribute",
+                  "label": "Radar 2 online",
+                  "color": "#607d8b",
+                  "settings": {},
+                  "_hash": 0.8498751799615389
+                },
+                {
+                  "name": "radar3_mode",
+                  "type": "attribute",
+                  "label": "Radar 3 mode",
+                  "color": "#607d8b",
+                  "settings": {},
+                  "_hash": 0.8657567472984459
+                }
+              ]
+            }
+          ],
+          "timewindow": {
+            "realtime": {
+              "realtimeType": 0,
+              "interval": 1000,
+              "timewindowMs": 600000,
+              "quickInterval": "CURRENT_DAY"
+            },
+            "history": {
+              "historyType": 0,
+              "interval": 1000,
+              "timewindowMs": 600000,
+              "quickInterval": "CURRENT_DAY"
+            },
+            "aggregation": {
+              "type": "NONE",
+              "limit": 25000
+            },
+            "selectedTab": 0,
+            "displayValue": ""
+          },
+          "useDashboardTimewindow": true,
+          "displayTimewindow": true,
+          "showTitle": true,
+          "title": "Device info (digital twin)",
+          "backgroundColor": "#ffffff",
+          "color": "rgba(0, 0, 0, 0.87)",
+          "padding": "8px",
+          "settings": {},
+          "dropShadow": true,
+          "enableFullscreen": true,
+          "showLegend": false,
+          "widgetStyle": {},
+          "titleStyle": {
+            "fontSize": "16px",
+            "fontWeight": 400
+          },
+          "actions": {},
+          "configMode": "advanced",
+          "enableDataExport": true
+        }
+      }
+    },
+    "states": {
+      "default": {
+        "name": "Phygital Digital Twin",
+        "root": true,
+        "layouts": {
+          "main": {
+            "widgets": {
+              "5e62d94c-7003-4c1d-8329-e903824fc66b": {
+                "sizeX": 8,
+                "sizeY": 6,
+                "row": 0,
+                "col": 0
+              },
+              "b67b6738-9a1f-4a71-a7b8-b3b500cc0b21": {
+                "sizeX": 16,
+                "sizeY": 6,
+                "row": 0,
+                "col": 8
+              },
+              "bf3f196c-fce4-46b0-b2c8-e4bb20ff2f0d": {
+                "sizeX": 16,
+                "sizeY": 5,
+                "row": 6,
+                "col": 8
+              },
+              "719ff078-b764-415d-b578-5fa0ffd17e19": {
+                "sizeX": 8,
+                "sizeY": 5,
+                "row": 6,
+                "col": 0
+              }
+            },
+            "gridSettings": {
+              "backgroundColor": "#eeeeee",
+              "columns": 24,
+              "margin": 10,
+              "outerMargin": true,
+              "backgroundSizeMode": "100%"
+            }
+          }
+        }
+      }
+    },
+    "entityAliases": {
+      "50518ee7-f764-49ee-8970-1e6a21b27bde": {
+        "id": "50518ee7-f764-49ee-8970-1e6a21b27bde",
+        "alias": "Phygital device",
+        "filter": {
+          "type": "entityName",
+          "resolveMultiple": false,
+          "entityType": "DEVICE",
+          "entityNameFilter": "phygital"
+        }
+      }
+    },
+    "filters": {},
+    "timewindow": {
+      "realtime": {
+        "realtimeType": 0,
+        "interval": 1000,
+        "timewindowMs": 600000,
+        "quickInterval": "CURRENT_DAY"
+      },
+      "history": {
+        "historyType": 0,
+        "interval": 1000,
+        "timewindowMs": 600000,
+        "quickInterval": "CURRENT_DAY"
+      },
+      "aggregation": {
+        "type": "NONE",
+        "limit": 25000
+      },
+      "selectedTab": 0,
+      "displayValue": "",
+      "hideInterval": false,
+      "hideAggregation": false
+    },
+    "settings": {
+      "stateControllerId": "entity",
+      "showTitle": true,
+      "showDashboardsSelect": true,
+      "showEntitiesSelect": true,
+      "showDashboardTimewindow": true,
+      "showDashboardExport": true,
+      "toolbarAlwaysOpen": true
+    }
+  },
+  "name": "Phygital Digital Twin"
+}
