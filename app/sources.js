@@ -98,10 +98,18 @@ class DemoSource {
     else if (this.occupied && Date.now() - this.lastInside > 3000) this.occupied = false;
     out.perimeter = inside ? 'inside' : this.occupied ? 'leaving' : 'clear';
     if (inside) out.nearest_m = +nearest.toFixed(2);
+    // every other walk-by is an animal; alert follows the device's rule: 1 s hold to start, 2 s to clear
+    const animal = Math.floor(t / 75) % 2 === 1, raw = inside ? (animal ? 'animal' : 'human') : 'none';
+    if (raw !== this.cand) { this.cand = raw; this.candSince = Date.now(); }
+    if (this.cand !== (this.alert ?? 'none') && Date.now() - this.candSince >= (raw === 'none' ? 2000 : 1000)) { this.alert = this.cand; this.closest = -1; }
+    if (this.alert && this.alert !== 'none' && inside && (this.closest < 0 || nearest < this.closest)) this.closest = nearest;
+    out.alert = this.alert ?? 'none';
+    out.sounding = out.alert === 'human' && this.cfg.alarm_on ? 1 : 0;
+    if (out.alert !== 'none') out.alert_closest_m = +this.closest.toFixed(2);
     const steps = d < 5 && dirs.some(x => x !== 'same') && Math.random() < 0.6;
-    out.sound_label = steps ? 'human_footsteps' : 'Background_noise';
+    out.sound_label = steps ? (animal ? 'animal_footsteps' : 'human_footsteps') : 'Background_noise';
     out.sound_score = +(steps ? 0.7 + Math.random() * 0.25 : 0.9 + Math.random() * 0.1).toFixed(2);
-    out.footsteps = steps ? 1 : 0;
+    out.footsteps = steps && !animal ? 1 : 0;
     out.mic_level = Math.round(300 + Math.random() * 400 + (steps ? 900 : 0));
     const led = dirs.includes('approach') ? 'red' : dirs.includes('away') ? 'green' : dirs.includes('same') ? 'blue' : 'off';
     out.led = this.cfg.led_on ? led : 'off';

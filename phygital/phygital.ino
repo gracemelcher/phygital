@@ -3,7 +3,8 @@
 //   + RGB LED + MAX98357A speaker, reporting over Wi-Fi/MQTT (see mqtt_link.h).
 //
 // LED:     RED = someone coming closer, GREEN = going away, BLUE = same distance, OFF = nobody
-// Speaker: entry beep when someone walks into the perimeter, then beeps that speed up as they approach
+// Alerts:  alert_logic.h combines radar motion with the sound model (human / animal / background) into
+//          1 = person approaching (beeps, faster as they get closer), 2 = animal (logged, silent), 3 = nothing
 // Remote settings (MQTT topic phygital/<id>/settings, or USB): perimeter_m, volume, alarm_on, led_on
 //
 // Wiring (GPIO numbers; radar TX goes to the ESP32's RX pin and vice versa)
@@ -33,8 +34,9 @@
 #include <esp_system.h>
 #include "DFRobot_C4002.h"
 #include "mqtt_link.h"
+#include "alert_logic.h"
 
-const char* FW_VERSION = "0.5.0-s3";
+const char* FW_VERSION = "0.6.0-s3";
 
 // Types (must be at the top for Arduino IDE)
 const int HIST = 8;               // distance history: 8 readings x 0.2 s = ~1.6 s
@@ -67,8 +69,10 @@ const int   BEEP_HZ = 1000, BEEP_MS = 80;
 const unsigned long SLOWEST_MS = 1500;   // beep interval at the edge of the perimeter
 const unsigned long FASTEST_MS = 200;    // beep interval at ~1 m
 const float TREND_THRESHOLD = 0.25;      // m/s: slower distance change = "same distance"
-const char* FOOTSTEP_LABEL = "human_footsteps";   // must match the model's label
-const float AI_CONFIDENCE = 0.70;        // report footsteps only above 70 % sure
+const char* HUMAN_LABEL  = "human_footsteps";    // must match the model's labels (any other label = background)
+const char* ANIMAL_LABEL = "animal_footsteps";
+const float AI_CONFIDENCE = 0.70;        // "footsteps" telemetry flag: human footsteps above 70 % sure
+const bool  AI_TIMING = false;           // true = print the sound model's runtime after each result
 const int   MIC_SHIFT = 14;              // mic gain for the AI: 13 = louder, 15 = quieter
 const int   QUIET_BELOW = 60, LOUD_ABOVE = 600;
 const unsigned long PUBLISH_MS   = 1000;   // send changed values once per second
@@ -226,39 +230,70 @@ I2SClass i2s;
 int32_t micBuf[N * 2];                               // left + right interleaved
 float vReal[N], vImag[N];
 ArduinoFFT<float> FFT(vReal, vImag, N, SAMPLE_RATE);
+// The mic is read by its own task on core 0 (next to Wi-Fi), so no audio is lost while the
+// sound model or the radars keep core 1 busy. micLock guards everything the two share.
+SemaphoreHandle_t micLock = NULL;
 int   micLevel = 0;  float micPeakHz = 0;            // loudest chunk since the last status line
 int   pubMicLevel = 0; float pubMicHz = 0;           // loudest since the last publish
 bool  micOK = false;
 
 const int AI_WINDOW = EI_CLASSIFIER_RAW_SAMPLE_COUNT;  // 1 second of audio
-int16_t *aiBuf = NULL;            // ring buffer of the last second
+int16_t *aiBuf = NULL;            // ring buffer of the last second (written by the mic task)
+int16_t *aiSnap = NULL;           // copy of it in time order, which the model reads
 int   aiPos = 0, aiNewSamples = 0;
 bool  aiOK = false;
 const char* aiLabel = "waiting";
 float aiScore = 0;
+float pHuman = 0, pAnimal = 0;     // each label's score from the latest result
 bool  aiHuman = false;
+AlertLogic alertLogic;            // decides human / animal / nothing (alert_logic.h)
 
 int aiGetData(size_t offset, size_t length, float *out) {
-  for (size_t i = 0; i < length; i++) out[i] = (float)aiBuf[(aiPos + offset + i) % AI_WINDOW];
+  for (size_t i = 0; i < length; i++) out[i] = (float)aiSnap[offset + i];
   return 0;
 }
 
 void runSoundAI() {
-  if (!aiOK || aiNewSamples < AI_WINDOW) return;   // wait for a full fresh second
-  aiNewSamples = 0;
+  if (!aiOK) return;
+  xSemaphoreTake(micLock, portMAX_DELAY);
+  bool ready = aiNewSamples >= AI_WINDOW;          // wait for a full fresh second
+  if (ready) {                                     // copy oldest-to-newest, then let the mic task carry on
+    memcpy(aiSnap, aiBuf + aiPos, (AI_WINDOW - aiPos) * sizeof(int16_t));
+    memcpy(aiSnap + (AI_WINDOW - aiPos), aiBuf, aiPos * sizeof(int16_t));
+    aiNewSamples = 0;
+  }
+  xSemaphoreGive(micLock);
+  if (!ready) return;
   signal_t signal;
   signal.total_length = AI_WINDOW;
   signal.get_data = &aiGetData;
   ei_impulse_result_t result = { 0 };
+  unsigned long t0 = micros();
   if (run_classifier(&signal, &result, false) != EI_IMPULSE_OK) { aiLabel = "ai_error"; return; }
+  if (AI_TIMING) {
+    static unsigned long lastDone = 0;
+    unsigned long now = millis();
+    Serial.printf("@AI total %lu ms (dsp %d, classify %d) | %lu ms since last result\n",
+                  (micros() - t0) / 1000, result.timing.dsp, result.timing.classification, lastDone ? now - lastDone : 0);
+    lastDone = now;
+  }
 
   int best = 0;
   for (int i = 1; i < EI_CLASSIFIER_LABEL_COUNT; i++)
     if (result.classification[i].value > result.classification[best].value) best = i;
   aiLabel = result.classification[best].label;
   aiScore = result.classification[best].value;
+  pHuman = pAnimal = 0;
+  for (int i = 0; i < EI_CLASSIFIER_LABEL_COUNT; i++) {
+    if (strcasecmp(result.classification[i].label, HUMAN_LABEL) == 0)  pHuman  = result.classification[i].value;
+    if (strcasecmp(result.classification[i].label, ANIMAL_LABEL) == 0) pAnimal = result.classification[i].value;
+  }
 
-  bool human = strcmp(aiLabel, FOOTSTEP_LABEL) == 0 && aiScore >= AI_CONFIDENCE;
+  Sound kind = strcasecmp(aiLabel, HUMAN_LABEL) == 0 ? SOUND_HUMAN
+             : strcasecmp(aiLabel, ANIMAL_LABEL) == 0 ? SOUND_ANIMAL : SOUND_BACKGROUND;
+  alertLogic.addSound(kind, aiScore, millis());
+
+  bool human = kind == SOUND_HUMAN && aiScore >= AI_CONFIDENCE;
   if (human && !aiHuman) Serial.printf(">>> SOUND AI: HUMAN FOOTSTEPS (%.0f%% sure)\n", aiScore * 100);
   aiHuman = human;
 }
@@ -278,6 +313,7 @@ void readMic() {
   int ch = (rL >= rR) ? 0 : 1;
   int level = max(rL, rR);
 
+  xSemaphoreTake(micLock, portMAX_DELAY);
   if (aiOK) {                                      // feed the AI's ring buffer
     for (int i = 0; i < N; i++) {
       aiBuf[aiPos] = (int16_t)constrain(micBuf[2 * i + ch] >> MIC_SHIFT, -32768, 32767);
@@ -285,11 +321,11 @@ void readMic() {
     }
     aiNewSamples += N;
   }
+  bool louder = level > micLevel;                  // keep the loudest chunk only
+  if (louder) { micLevel = level; micPeakHz = 0; }
+  xSemaphoreGive(micLock);
+  if (!louder || level < QUIET_BELOW) return;
 
-  if (level <= micLevel) return;                   // keep the loudest chunk only
-  micLevel = level;
-  micPeakHz = 0;
-  if (level < QUIET_BELOW) return;
   double mean = 0;
   for (int i = 0; i < N; i++) { vReal[i] = (float)(micBuf[2 * i + ch] >> 14); mean += vReal[i]; }
   mean /= N;
@@ -297,7 +333,14 @@ void readMic() {
   FFT.windowing(FFTWindow::Hamming, FFTDirection::Forward);
   FFT.compute(FFTDirection::Forward);
   FFT.complexToMagnitude();
-  micPeakHz = FFT.majorPeak();
+  float hz = FFT.majorPeak();
+  xSemaphoreTake(micLock, portMAX_DELAY);
+  if (micLevel == level) micPeakHz = hz;           // still the loudest chunk
+  xSemaphoreGive(micLock);
+}
+
+void micTask(void*) {
+  for (;;) readMic();                              // readBytes waits for audio, so this mostly sleeps
 }
 
 // ================= REMOTE CONFIG =================
@@ -372,7 +415,7 @@ void addRadar(JsonDocument &doc, const char* p, const RadarInfo &r, bool full) {
   if (full) { snprintf(k, sizeof(k), "%s_energy", p); doc[k] = r.energy; }
 }
 
-void publishTelemetry(const char* zone, float nearest, bool full) {
+void publishTelemetry(const char* zone, float nearest, bool sounding, bool full) {
   JsonDocument doc;
   char p[4];
   for (int i = 0; i < NUM_RADARS; i++) { snprintf(p, sizeof(p), "r%d", i + 1); addRadar(doc, p, r[i], full); }
@@ -388,7 +431,13 @@ void publishTelemetry(const char* zone, float nearest, bool full) {
   addIfChanged(doc, "sound_label", aiLabel, full);
   if (labelChanged) doc["sound_score"] = round2(aiScore);
   addIfChanged(doc, "footsteps", aiHuman ? 1 : 0, full);
+  addIfChanged(doc, "p_human", round2(pHuman), full);
+  addIfChanged(doc, "p_animal", round2(pAnimal), full);
   addIfChanged(doc, "led", ledWord(currentColor), full);
+  addIfChanged(doc, "alert", alertWord(alertLogic.state), full);
+  addIfChanged(doc, "alert_reason", alertLogic.reason, full);
+  addIfChanged(doc, "sounding", sounding ? 1 : 0, full);
+  if (alertLogic.state != ALERT_NONE) addIfChanged(doc, "alert_closest_m", round2(alertLogic.closest), full);
 
   pubMicLevel = 0; pubMicHz = 0;
   if (doc.size() == 0) return;
@@ -496,10 +545,10 @@ void setup() {
   Serial.println(ampOK ? "Speaker ready." : "Speaker FAILED - check BCLK, LRC, DIN");
   if (ampOK) ampTone(0, 100);
 
-  // Sound AI buffer (88 KB): in PSRAM if enabled, otherwise internal RAM
-  aiBuf = psramFound() ? (int16_t*)ps_calloc(AI_WINDOW, sizeof(int16_t))
-                       : (int16_t*)calloc(AI_WINDOW, sizeof(int16_t));
-  aiOK = (aiBuf != NULL);
+  // Sound AI buffers (2 x 88 KB): in PSRAM if enabled, otherwise internal RAM
+  for (int16_t** b : { &aiBuf, &aiSnap })
+    *b = psramFound() ? (int16_t*)ps_calloc(AI_WINDOW, sizeof(int16_t)) : (int16_t*)calloc(AI_WINDOW, sizeof(int16_t));
+  aiOK = aiBuf && aiSnap;
   Serial.printf("PSRAM: %s\n", psramFound() ? "found" : "NOT found (Tools > PSRAM > QSPI PSRAM)");
   Serial.println(aiOK ? "Sound AI ready." : "Sound AI FAILED - not enough memory");
 
@@ -507,6 +556,8 @@ void setup() {
   micOK = i2s.begin(I2S_MODE_STD, SAMPLE_RATE, I2S_DATA_BIT_WIDTH_32BIT, I2S_SLOT_MODE_STEREO, I2S_STD_SLOT_BOTH);
   if (micOK) for (int k = 0; k < 5; k++) i2s.readBytes((char*)micBuf, sizeof(micBuf));
   Serial.println(micOK ? "Mic ready." : "Mic FAILED - check SCK, WS, SD");
+  micLock = xSemaphoreCreateMutex();
+  if (micOK) xTaskCreatePinnedToCore(micTask, "mic", 8192, NULL, 3, NULL, 0);   // core 0, below Wi-Fi's priority
 
   for (int i = 0; i < NUM_RADARS; i++) {
     char name[10];
@@ -529,9 +580,9 @@ void setup() {
 unsigned long lastPrint = 0, lastBeep = 0, lastInside = 0, lastPublish = 0, lastHeartbeat = 0;
 bool occupied = false;
 float nearest = 0;
+float lastAlertDist = 6;          // last known distance during a person alert (for the beep rate)
 
 void loop() {
-  readMic();
   runSoundAI();                      // about once per second, takes a moment
   for (int i = 0; i < NUM_RADARS; i++)
     if (r[i].online) pollRadar(radars[i], *radarPort[i], r[i]);
@@ -545,39 +596,57 @@ void loop() {
   }
   setLed(closer ? RED : away ? GREEN : same ? BLUE : OFF);
 
-  // ---- Speaker: perimeter alarm ----
+  // ---- What the radars see ----
+  RadarView rv;
+  rv.perimeter = cfg.perimeterM;
   float nearNow = cfg.perimeterM;
-  for (int i = 0; i < NUM_RADARS; i++)
-    if (inPerimeter(r[i])) { insideNow = true; nearNow = min(nearNow, r[i].dist); }
-  if (insideNow) { nearest = nearNow; lastInside = millis(); }
-
-  if (insideNow && !occupied) {
-    occupied = true;
-    Serial.printf(">>> Someone ENTERED the perimeter at %.2f m\n", nearest);
-    beep(800, 120); beep(1200, 120);
-    lastBeep = millis();
-  } else if (occupied && !insideNow && millis() - lastInside > EXIT_DELAY_MS) {
-    occupied = false;
-    Serial.println("<<< Perimeter clear");
+  for (int i = 0; i < NUM_RADARS; i++) {
+    if (inPerimeter(r[i])) {
+      insideNow = true; nearNow = min(nearNow, r[i].dist);
+      rv.approaching |= m[i] == CLOSER;
+    }
+    if (fresh(r[i]) && r[i].state > 0 && r[i].dist > 0 && (!rv.anyTarget || r[i].dist < rv.anyNearest)) {
+      rv.anyTarget = true; rv.anyNearest = r[i].dist;
+    }
   }
-  if (occupied && insideNow) {       // beep faster as they get closer
-    float t = (constrain(nearest, 1.0f, cfg.perimeterM) - 1.0f) / (cfg.perimeterM - 1.0f);
+  rv.motion = insideNow; rv.nearest = nearNow;
+  if (insideNow) { nearest = nearNow; lastInside = millis(); }
+  if (insideNow && !occupied) occupied = true;
+  else if (occupied && !insideNow && millis() - lastInside > EXIT_DELAY_MS) occupied = false;
+  const char* zone = (occupied && insideNow) ? "inside" : occupied ? "leaving" : "clear";
+
+  // ---- Alert: 1 human (beep), 2 animal (log only), 3 nothing ----
+  if (alertLogic.update(rv, millis())) {
+    if (alertLogic.state == ALERT_HUMAN)
+      Serial.printf(">>> ALERT: PERSON APPROACHING (%s)%s\n", alertLogic.reason, cfg.alarmOn ? "" : " - alarm off, no sound");
+    else if (alertLogic.state == ALERT_ANIMAL)
+      Serial.printf(">>> ANIMAL nearby (%s), no sound\n", alertLogic.reason);
+    if (alertLogic.ended != ALERT_NONE)
+      Serial.printf("<<< %s gone, closest %.1f m\n", alertLogic.ended == ALERT_HUMAN ? "Person" : "Animal", alertLogic.endedClosest);
+  }
+  if (alertLogic.state == ALERT_HUMAN) {   // same loudness throughout, faster as they get closer
+    float d = AlertLogic::distance(rv);
+    if (d > 0) lastAlertDist = d;
+    float t = (constrain(lastAlertDist, 1.0f, cfg.perimeterM) - 1.0f) / max(cfg.perimeterM - 1.0f, 0.1f);
     if (millis() - lastBeep >= FASTEST_MS + (unsigned long)(t * (SLOWEST_MS - FASTEST_MS))) {
       beep();
       lastBeep = millis();
     }
   }
-  const char* zone = (occupied && insideNow) ? "inside" : occupied ? "leaving" : "clear";
+  bool sounding = alertLogic.state == ALERT_HUMAN && cfg.alarmOn && ampOK;
 
   // ---- Status line every 0.25 s ----
   if (millis() - lastPrint >= 250) {
     lastPrint = millis();
-    Serial.printf("Perimeter: %-7s |", zone);
+    Serial.printf("Alert: %-6s | Perimeter: %-7s |", alertWord(alertLogic.state), zone);
     for (int i = 0; i < NUM_RADARS; i++) Serial.printf(" R%d: %-8s %5.2fm |", i + 1, motionWord(m[i]), r[i].dist);
-    Serial.printf(" Mic: %5d %-5s | Sound: %s %3.0f%%\n",
-                  micLevel, micWord(micLevel), aiHuman ? "FOOTSTEPS" : aiLabel, aiScore * 100);
-    if (micLevel > pubMicLevel) { pubMicLevel = micLevel; pubMicHz = micPeakHz; }
+    xSemaphoreTake(micLock, portMAX_DELAY);
+    int lvl = micLevel; float hz = micPeakHz;
     micLevel = 0;
+    xSemaphoreGive(micLock);
+    Serial.printf(" Mic: %5d %-5s | Sound: %s %3.0f%%\n",
+                  lvl, micWord(lvl), aiHuman ? "FOOTSTEPS" : aiLabel, aiScore * 100);
+    if (lvl > pubMicLevel) { pubMicLevel = lvl; pubMicHz = hz; }
   }
 
   // ---- MQTT + USB ----
@@ -594,6 +663,6 @@ void loop() {
     lastPublish = millis();
     bool full = forceFull || millis() - lastHeartbeat >= HEARTBEAT_MS;
     if (full) { lastHeartbeat = millis(); forceFull = false; }
-    publishTelemetry(zone, nearest, full);
+    publishTelemetry(zone, nearest, sounding, full);
   }
 }

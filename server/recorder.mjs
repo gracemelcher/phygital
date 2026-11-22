@@ -5,7 +5,7 @@
 //
 // Topics (ROOT = topicRoot, default "phygital"):
 //   in   ROOT/+/telemetry, ROOT/+/info, ROOT/+/status, ROOT/+/settings   (from devices)
-//   in   ROOT/_history/req          {"id":"abc","device":"phygital-01","kind":"points"|"events"|"raw","since":ms,"until":ms}
+//   in   ROOT/_history/req          {"id":"abc","device":"phygital-01","kind":"points"|"events"|"detections"|"raw","since":ms,"until":ms}
 //   out  ROOT/_history/res/<id>     {"id":"abc","kind":...,"rows":[...]}
 //   out  ROOT/_recorder/status      retained "online" / "offline" (so the app knows history is available)
 import mqtt from 'mqtt';
@@ -30,17 +30,22 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS points (device TEXT, t INTEGER, r1 REAL, r2 REAL, r3 REAL, nearest REAL,
                                      mic INTEGER, sound_score REAL /* footstep confidence 0-1 */, footsteps INTEGER, zone TEXT, perimeter REAL);
   CREATE TABLE IF NOT EXISTS events (device TEXT, t INTEGER, kind TEXT, text TEXT);
+  CREATE TABLE IF NOT EXISTS detections (device TEXT, t INTEGER, who TEXT /* human | animal */, dist REAL /* closest, m */, radar INTEGER /* 1-3 */);
+  CREATE INDEX IF NOT EXISTS detections_dt ON detections(device, t);
   CREATE INDEX IF NOT EXISTS raw_dt    ON raw(device, t);
   CREATE INDEX IF NOT EXISTS points_dt ON points(device, t);
   CREATE INDEX IF NOT EXISTS events_dt ON events(device, t);
 `);
+try { db.exec('ALTER TABLE points ADD COLUMN alert TEXT'); } catch {}   // added in firmware 0.6 (human / animal / none)
 const insRaw = db.prepare('INSERT INTO raw VALUES (?, ?, ?, ?)');
-const insPoint = db.prepare('INSERT INTO points VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+const insPoint = db.prepare('INSERT INTO points (device, t, r1, r2, r3, nearest, mic, sound_score, footsteps, zone, perimeter, alert) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
 const insEvent = db.prepare('INSERT INTO events VALUES (?, ?, ?, ?)');
+const insDet = db.prepare('INSERT INTO detections VALUES (?, ?, ?, ?, ?)');
+const updDet = db.prepare('UPDATE detections SET dist = ?, radar = ? WHERE rowid = ?');
 
 function prune() {
   const cutoff = Date.now() - cfg.keepDays * 86400e3;
-  for (const t of ['points', 'events']) db.prepare(`DELETE FROM ${t} WHERE t < ?`).run(cutoff);
+  for (const t of ['points', 'events', 'detections']) db.prepare(`DELETE FROM ${t} WHERE t < ?`).run(cutoff);
   db.prepare('DELETE FROM raw WHERE t < ?').run(Date.now() - cfg.keepRawDays * 86400e3);   // raw messages pile up fast
 }
 prune();
@@ -48,7 +53,7 @@ setInterval(prune, 3600e3);
 
 // ---------------- per-device state (merged telemetry, for points + events) ----------------
 const devices = new Map();   // id -> { state, info, status, lastSteps }
-const dev = id => devices.get(id) ?? devices.set(id, { state: {}, info: {}, status: null, lastSteps: 0 }).get(id);
+const dev = id => devices.get(id) ?? devices.set(id, { id, state: {}, info: {}, status: null, lastSteps: 0, det: null }).get(id);
 const num = v => (typeof v === 'number' && isFinite(v) ? v : null);
 
 function event(id, kind, text, t = Date.now()) {
@@ -64,14 +69,18 @@ function onTelemetry(id, delta, t) {
 
   const r = [1, 2, 3].map(i => num(s[`r${i}_dist_m`]));
   const present = r.filter(v => v != null);
-  // footstep confidence: the model reports its top label's score; with two labels the other is 1 - score
-  const score = num(s.sound_score), steps = score == null ? null : s.sound_label === 'human_footsteps' ? score : 1 - score;
+  // footstep confidence: p_human from firmware 0.6; older firmware only sends the top label's score
+  const score = num(s.sound_score), steps = num(s.p_human) ?? (score == null ? null : s.sound_label === 'human_footsteps' ? score : 1 - score);
   insPoint.run(id, t, r[0], r[1], r[2], present.length ? Math.min(...present) : null, num(s.mic_level),
-               steps, s.footsteps === 1 ? 1 : 0, s.perimeter ?? null, num(d.info.active_perimeter_m));
+               steps, s.footsteps === 1 ? 1 : 0, s.perimeter ?? null, num(d.info.active_perimeter_m), s.alert ?? null);
 
-  if (prev.perimeter !== s.perimeter && s.perimeter === 'inside')
-    event(id, 'in', `Someone entered the perimeter${s.nearest_m != null ? ' at ' + s.nearest_m.toFixed(1) + ' m' : ''}${d.info.active_alarm_on === false ? ' (disarmed)' : ''}`, t);
-  if (prev.perimeter && prev.perimeter !== 'clear' && s.perimeter === 'clear') event(id, '', 'Perimeter clear', t);
+  trackDetection(d, s, t);
+  if (s.alert !== undefined) alertEvents(id, prev, s, d, t);
+  else {   // firmware before 0.6: perimeter only
+    if (prev.perimeter !== s.perimeter && s.perimeter === 'inside')
+      event(id, 'in', `Someone entered the perimeter${s.nearest_m != null ? ' at ' + s.nearest_m.toFixed(1) + ' m' : ''}${d.info.active_alarm_on === false ? ' (disarmed)' : ''}`, t);
+    if (prev.perimeter && prev.perimeter !== 'clear' && s.perimeter === 'clear') event(id, '', 'Perimeter clear', t);
+  }
   if (s.footsteps === 1 && prev.footsteps !== 1 && t - d.lastSteps > 15000) {
     d.lastSteps = t;
     event(id, 'steps', `Footsteps heard (${Math.round((s.sound_score ?? 0) * 100)}% sure)`, t);
@@ -80,6 +89,30 @@ function onTelemetry(id, delta, t) {
     const st = s[`r${i}_state`];
     if (prev[`r${i}_state`] !== st && (st === 'offline' || st === 'no_data')) event(id, 'warn', `Sensor ${i} stopped responding`, t);
   }
+}
+
+// One row per detection (person or animal) for the app's History screen: when, closest distance, which radar.
+function trackDetection(d, s, t) {
+  const who = s.alert === 'human' || s.alert === 'animal' ? s.alert : s.alert === undefined && s.perimeter === 'inside' ? 'human' : null;
+  let near = null;
+  for (let i = 1; i <= 3; i++) { const v = num(s[`r${i}_dist_m`]); if (v != null && v > 0 && (!near || v < near.dist)) near = { dist: v, radar: i }; }
+  if (!who) { d.det = null; return; }
+  if (!d.det || d.det.who !== who) {
+    const r = insDet.run(d.id, t, who, near?.dist ?? null, near?.radar ?? null);
+    d.det = { row: r.lastInsertRowid, who, dist: near?.dist ?? null };
+  } else if (near && (d.det.dist == null || near.dist < d.det.dist)) {
+    updDet.run(near.dist, near.radar, d.det.row); d.det.dist = near.dist;
+  }
+}
+
+// Alert categories from the device: human (alarm), animal (logged only), none
+const meters = v => (typeof v === 'number' && v >= 0 ? ` ${v.toFixed(1)} m` : '');
+function alertEvents(id, prev, s, d, t) {
+  if (prev.alert === s.alert || prev.alert === undefined && s.alert === 'none') return;
+  if (prev.alert === 'animal') event(id, 'animal', `Animal walked by${prev.alert_closest_m >= 0 ? ', closest' + meters(prev.alert_closest_m) : ' (heard, distance unknown)'}`, t);
+  if (prev.alert === 'human') event(id, '', `Person gone${prev.alert_closest_m >= 0 ? ', closest' + meters(prev.alert_closest_m) : ''}`, t);
+  if (s.alert === 'human')
+    event(id, 'in', `Person approaching${s.alert_closest_m >= 0 ? ' at' + meters(s.alert_closest_m) : ''}${d.info.active_alarm_on === false ? ' (disarmed, no sound)' : ' · alarm sounding'}`, t);
 }
 
 function onInfo(id, info, t) {
@@ -106,6 +139,8 @@ function onStatus(id, status, t, retained) {
 function history({ device, kind = 'points', since = Date.now() - 3600e3, until = Date.now() }) {
   if (kind === 'events')
     return db.prepare('SELECT t, kind, text FROM events WHERE device = ? AND t BETWEEN ? AND ? ORDER BY t DESC LIMIT 500').all(device, since, until);
+  if (kind === 'detections')
+    return db.prepare('SELECT t, who, dist, radar FROM detections WHERE device = ? AND t BETWEEN ? AND ? ORDER BY t DESC LIMIT 300').all(device, since, until);
   if (kind === 'raw')
     return db.prepare('SELECT t, topic, json FROM raw WHERE device = ? AND t BETWEEN ? AND ? ORDER BY t DESC LIMIT 500').all(device, since, until);
   // points: averaged into at most maxPoints buckets so long ranges stay small
@@ -113,7 +148,8 @@ function history({ device, kind = 'points', since = Date.now() - 3600e3, until =
   return db.prepare(`
     SELECT (t / ${bucket}) * ${bucket} AS t, MIN(r1) AS r1, MIN(r2) AS r2, MIN(r3) AS r3, MIN(nearest) AS nearest,
            CAST(AVG(mic) AS INTEGER) AS mic, MAX(sound_score) AS sound_score, MAX(footsteps) AS footsteps,
-           MAX(zone = 'inside') AS inside, MAX(perimeter) AS perimeter
+           MAX(zone = 'inside') AS inside, MAX(perimeter) AS perimeter,
+           MAX(alert = 'human') AS human, MAX(alert = 'animal') AS animal
     FROM points WHERE device = ? AND t BETWEEN ? AND ? GROUP BY t / ${bucket} ORDER BY t`).all(device, since, until);
 }
 

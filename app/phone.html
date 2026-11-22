@@ -1,0 +1,581 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=402, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ECECE0">
+<title>Phygital app</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400..700&display=swap" rel="stylesheet">
+<style>
+/* Built from the Figma file "Phygital Wunderkammer" (Prototypes, iPhone 18 Pro frames, 402 x 874).
+   Positions, sizes, fonts and colours are Figma's; artwork in img/f/ is exported from Figma as SVG.
+   index.html shows this page inside an iPhone frame. */
+:root { --bg: #ECECE0; --grey: #878787; --tab-off: #D0D0D0; --well: #D4D4C3; --paper: #FAFAF1; --rim: #BABAA2;
+  --away: #F24822; --card: #F2F2EA; --card-rim: #8F8F75; --sub: #A3A3A3; --alert: #C2502F; --faint: #CFCEC6; }
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+[hidden] { display: none !important; }
+html, body { margin: 0; background: var(--bg); color: #000; }
+body { font-family: "Instrument Sans", -apple-system, BlinkMacSystemFont, sans-serif; -webkit-font-smoothing: antialiased; }
+button { font-family: inherit; color: inherit; }
+.phone { position: relative; width: 402px; height: 874px; margin: 0 auto; overflow: hidden; background: var(--bg); }
+.a { position: absolute; margin: 0; white-space: pre; }
+img.a { display: block; max-width: none; }
+.screen { display: none; } .screen.active { display: block; }
+.semi { font-weight: 600; } .med { font-weight: 500; }
+
+/* titles: SemiBold 32, centred at x 200.5, top 58 */
+.title { left: 97px; top: 58px; width: 207px; font: 600 32px/normal "Instrument Sans", sans-serif; text-align: center; }
+/* "Device connected": Medium 16 / 18, -0.32 tracking, #878787 */
+.status { position: absolute; left: 0; top: 0; width: 0; height: 0; border: 0; padding: 0; background: none; cursor: pointer; }
+.status span { position: absolute; top: 109px; font: 500 16px/18px "Instrument Sans", sans-serif; letter-spacing: -0.32px; color: var(--grey); white-space: nowrap; }
+.status img { position: absolute; top: 105px; width: 25px; height: 25px; }
+
+/* Arm */
+.away { left: 0; top: 188px; width: 400px; text-align: center; font: 600 20px/18px "Instrument Sans", sans-serif; letter-spacing: -0.32px; color: var(--away); }
+.activity { left: 132px; top: 218px; font: 500 14px/18px "Instrument Sans", sans-serif; letter-spacing: -0.32px; color: var(--grey); }
+.puck { left: 30px; top: 276px; width: 342px; height: 196px; }
+.withhead .puck { top: 310px; }
+.armbtn { position: absolute; left: 116px; top: 542px; width: 169px; height: 56px; border-radius: 9999px; border: 2px solid var(--rim);
+  background: var(--paper); padding: 0; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  font: 600 16px/18px "Instrument Sans", sans-serif; letter-spacing: -0.32px; white-space: pre; }
+.withhead .armbtn { top: 576px; }
+.armbtn.red { border-color: transparent; background: linear-gradient(var(--paper), var(--paper)) padding-box, linear-gradient(90deg, #E62A00, #F1937E) border-box; }
+.lockic { top: 558px; width: 24px; height: 24px; pointer-events: none; }
+.withhead .lockic { top: 592px; }
+
+/* Controls */
+.lbl { font: 600 16px/normal "Instrument Sans", sans-serif; }
+.meters { left: 182px; width: 190px; text-align: right; font: 500 16px/normal "Instrument Sans", sans-serif; }
+.meters b { font-weight: 600; }
+.seg { position: absolute; left: 30px; top: 474px; width: 342px; height: 50px; border-radius: 9999px; background: var(--well); }
+.seg button { position: absolute; border: 0; background: none; padding: 0; cursor: pointer; border-radius: 9999px;
+  font: 500 14px/14px "Instrument Sans", sans-serif; letter-spacing: -0.24px; white-space: nowrap; transition: background .15s; }
+.seg button.on { background: var(--paper); font-weight: 600; line-height: 16px; }
+.vtrack { left: 34px; top: 592px; width: 338px; height: 50px; border-radius: 33px; background: var(--well); }
+.vfill { left: 30px; top: 592px; height: 51px; border-radius: 33px; background: var(--paper); border: 2px solid var(--well); }
+.vnum { right: 47px; top: 608px; font: 600 16px/normal "Instrument Sans", sans-serif; pointer-events: none; }
+.vol { position: absolute; left: 30px; top: 592px; width: 342px; height: 51px; opacity: 0; cursor: pointer; margin: 0; }
+.preview { position: absolute; left: 30px; top: 660px; width: 342px; height: 40px; border-radius: 9999px; border: 2px solid var(--rim);
+  background: var(--paper); cursor: pointer; padding: 0; font: 600 14px/16px "Instrument Sans", sans-serif; letter-spacing: -0.28px; }
+.preview:disabled { cursor: default; }
+
+/* History */
+.legend { left: 26px; top: 105px; width: 86px; height: 53px; border: 0.4px solid var(--card-rim); border-radius: 13px; background: var(--card); }
+.ltext { left: 63px; font: 500 12px/normal "Instrument Sans", sans-serif; }
+.acard { left: 30px; top: 462px; width: 342px; height: 451px; border: 1px solid var(--card-rim); border-radius: 23px 23px 0 0; background: var(--card); }
+.ahead { left: 57px; top: 482px; font: 600 16px/normal "Instrument Sans", sans-serif; }
+.blob { position: absolute; cursor: pointer; transition: opacity .2s; }
+.alist { position: absolute; left: 0; top: 513px; width: 402px; bottom: 0; overflow-y: auto; padding-bottom: 150px; scrollbar-width: none; }
+.alist::-webkit-scrollbar { display: none; }
+.arow { position: relative; height: 54px; cursor: pointer; }
+.arow .hl { position: absolute; left: 46px; top: 0; width: 310px; height: 54px; border-radius: 12px; background: rgba(212, 212, 195, .52); display: none; }
+.arow.sel .hl { display: block; }
+.arow .div { position: absolute; left: 48px; top: 53.5px; width: 306px; height: .5px; }
+.arow.sel .div, .arow:has(+ .arow.sel) .div { display: none; }
+.arow .t, .arow .s { position: absolute; left: 85px; font: 500 14px/normal "Instrument Sans", sans-serif; white-space: nowrap; }
+.arow .t { top: 8px; } .arow .s { top: 27px; color: var(--sub); }
+.aempty { position: absolute; left: 85px; top: 8px; font: 500 14px/normal "Instrument Sans", sans-serif; color: var(--sub); }
+
+/* Tab bar (Figma: 342 x 81 pill, radius 61, shadow -1 8 26 12 rgba(0,0,0,.04)) */
+.tabbar { position: absolute; left: 30px; top: 736px; width: 342px; height: 81px; border-radius: 61px; background: var(--paper);
+  box-shadow: -1px 8px 26px 12px rgba(0, 0, 0, .04); z-index: 5; }
+.on-history .tabbar { background: #FEFEFE; }
+.tabs { position: absolute; left: 0; top: 0; z-index: 6; }
+.tab { position: absolute; top: 736px; height: 81px; border: 0; background: none; padding: 0; cursor: pointer; }
+.tablbl { top: 784px; width: 80px; margin-left: -40px; text-align: center; font: 600 16px/normal "Instrument Sans", sans-serif; color: var(--tab-off); pointer-events: none; }
+.tablbl.on { color: #000; }
+.tabic { pointer-events: none; }
+.histic { left: 273.22px; top: 746px; width: 39.782px; height: 39.782px; display: flex; align-items: center; justify-content: center; }
+.histic img { width: 30px; height: 30px; transform: rotate(114.66deg); }
+.harrow { left: 287px; top: 760px; width: 12.765px; height: 12.765px; display: flex; align-items: center; justify-content: center; }
+.harrow div { position: relative; width: 10.04px; height: 10.04px; transform: rotate(19.07deg); }
+.harrow img { position: absolute; left: 0; top: 2.36%; width: 97.61%; height: 97.64%; }
+.homebar { left: 129.4px; top: 862px; width: 143.3px; height: 5px; border-radius: 10px; background: #000; }
+
+/* Connection sheet */
+.scrim { position: absolute; inset: 0; background: rgba(30, 30, 20, .25); opacity: 0; pointer-events: none; transition: opacity .2s; z-index: 9; }
+.scrim.open { opacity: 1; pointer-events: auto; }
+.sheet { position: absolute; left: 0; right: 0; bottom: 0; transform: translateY(105%); max-height: 85%; overflow: auto;
+  background: #F6F5EE; border-radius: 28px 28px 0 0; padding: 22px 26px 34px; transition: transform .25s ease; z-index: 10; }
+.sheet.open { transform: none; }
+.sheet h2 { font-size: 22px; margin: 0 0 4px; font-weight: 600; }
+.sheet .btns { display: grid; gap: 10px; margin: 18px 0; }
+.outline { display: block; width: 100%; padding: 12px; border-radius: 999px; border: 2px solid var(--rim); background: var(--paper);
+  font: 600 15px "Instrument Sans", sans-serif; cursor: pointer; }
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; font-size: 14px; }
+.kv div:nth-child(odd) { color: var(--grey); }
+pre.log { font: 11px/1.45 ui-monospace, Menlo, monospace; background: var(--paper); border-radius: 14px; padding: 12px; max-height: 220px;
+  overflow: auto; white-space: pre-wrap; margin: 8px 0 0; }
+.warn { font-size: 13px; color: var(--alert); margin-top: 8px; }
+.netform { display: grid; gap: 10px; background: var(--paper); border-radius: 18px; padding: 14px; }
+.netform label { display: grid; gap: 4px; font-size: 12px; color: var(--grey); }
+.netform input { font: 15px "Instrument Sans", sans-serif; padding: 10px 12px; border: 1px solid var(--rim); border-radius: 10px; background: #F6F5EE; }
+.small { font-size: 12px; color: var(--grey); }
+</style>
+</head>
+<body>
+<div class="phone" id="phone">
+  <!-- status bar (Figma "iPhone-status-bar(upper)") -->
+  <img class="a" src="img/f/sb-time.svg" alt="" style="left:32px; top:17px; width:33px; height:15px">
+  <img class="a" src="img/f/sb-indicator.svg" alt="" style="left:324px; top:10px; width:6px; height:6px">
+  <img class="a" src="img/f/sb-signal.svg" alt="" style="left:318px; top:18px; width:20px; height:14px">
+  <img class="a" src="img/f/sb-wifi.svg" alt="" style="left:342px; top:18px; width:16px; height:14px">
+  <img class="a" src="img/f/sb-battery.svg" alt="" style="left:362px; top:18px; width:25px; height:14px">
+
+  <!-- ================= ARM ================= -->
+  <section class="screen active" id="s-arm">
+    <p class="a title">Arm Device</p>
+    <div id="alertHead" hidden>
+      <p class="a away" id="awayText"></p>
+      <img class="a" id="activityDot" src="img/f/dot-red.svg" alt="" style="left:100px; top:214px; width:25px; height:25px">
+      <p class="a activity" id="activityText">Human activity detected</p>
+    </div>
+    <img class="a puck" id="puck" src="img/f/puck-disarmed.svg" alt="">
+    <button class="armbtn" id="armBtn"><span id="armLabel">       Disarmed</span></button>
+    <img class="a lockic" id="lockIc" src="img/f/ic-unlock.svg" alt="" style="left:145px">
+  </section>
+
+  <!-- ================= CONTROLS ================= -->
+  <section class="screen" id="s-controls">
+    <p class="a title">Controls</p>
+    <img class="a" id="scene" src="img/f/scene.svg" alt="" style="left:65px; top:147px; width:283px; height:266px">
+    <div id="rangeArt"></div>
+    <p class="a lbl" id="lblRange" style="left:30px; top:434px">Set detection range</p>
+    <p class="a meters" id="rangeMeters" style="top:434px"><b>7 </b>meters</p>
+    <div class="seg" id="seg">
+      <button data-range="cons">Conservative</button><button data-range="med" class="on">Medium</button><button data-range="full">Full Protection</button>
+    </div>
+    <p class="a lbl" style="left:30px; top:552px">Set alarm volume</p>
+    <div class="a vtrack"></div>
+    <div class="a vfill" id="volFill"></div>
+    <img class="a" src="img/f/ic-volume.svg" alt="" style="left:44px; top:606px; width:24px; height:24px">
+    <p class="a vnum" id="volNum">35</p>
+    <input class="vol" type="range" id="vol" min="0" max="100" step="1" value="35" aria-label="Alarm volume">
+    <button class="preview" id="previewBtn">Preview sensor volume</button>
+  </section>
+
+  <!-- ================= HISTORY ================= -->
+  <section class="screen" id="s-history">
+    <p class="a title">History</p>
+    <div class="a legend"></div>
+    <img class="a" src="img/f/glow-human-s.svg" alt="" style="left:30.4px; top:109.4px; width:24.2px; height:24.2px">
+    <img class="a" src="img/f/glow-animal-s.svg" alt="" style="left:31.1px; top:134.1px; width:21.8px; height:21.8px">
+    <p class="a ltext" style="top:111px">Human</p>
+    <p class="a ltext" style="top:136px">Animal</p>
+    <img class="a" src="img/f/ring-1.svg" alt="" style="left:69.8px; top:156.98px; width:262.043px; height:262.043px">
+    <img class="a" src="img/f/ring-2.svg" alt="" style="left:87.83px; top:175.01px; width:225.986px; height:225.986px">
+    <img class="a" src="img/f/ring-3.svg" alt="" style="left:105.86px; top:193.04px; width:189.929px; height:189.929px">
+    <img class="a" src="img/f/ring-4.svg" alt="" style="left:123.89px; top:211.06px; width:153.872px; height:153.872px">
+    <img class="a" src="img/f/ring-5.svg" alt="" style="left:141.92px; top:229.09px; width:117.816px; height:117.816px">
+    <img class="a" src="img/f/spoke-up.svg" alt="" style="left:200.8px; top:157px; width:0.4px; height:90px">
+    <img class="a" src="img/f/spoke-left.svg" alt="" style="left:101.87px; top:314.85px; width:68.2621px; height:59.3021px">
+    <img class="a" src="img/f/spoke-right.svg" alt="" style="left:234.89px; top:309.83px; width:76.2168px; height:49.3362px">
+    <img class="a" src="img/f/ring-inner.svg" alt="" style="left:159.94px; top:247.12px; width:81.7587px; height:81.7587px">
+    <div id="blobs"></div>
+    <img class="a" src="img/f/tent.svg" alt="" style="left:177px; top:270px; width:48.0157px; height:26.9697px">
+    <div class="a acard"></div>
+    <p class="a ahead">Activity</p>
+    <div class="alist" id="alist"></div>
+  </section>
+
+  <!-- shared "Device connected" line (Arm and Controls) -->
+  <button class="status" id="status"><img id="statusDot" src="img/f/dot-red.svg" alt=""><span id="statusText">Device disconnected</span></button>
+
+  <!-- ================= TAB BAR ================= -->
+  <div class="tabbar"></div>
+  <div class="tabs">
+    <button class="tab" data-tab="arm" style="left:50px; width:100px" aria-label="Arm"></button>
+    <button class="tab" data-tab="controls" style="left:150px; width:95px" aria-label="Controls"></button>
+    <button class="tab" data-tab="history" style="left:245px; width:105px" aria-label="History"></button>
+    <img class="a tabic" id="icArm" src="img/f/tab-arm-on.svg" alt="" style="left:85px; top:751px; width:30px; height:30px">
+    <img class="a tabic" id="icCtrl" src="img/f/tab-ctrl-off.svg" alt="" style="left:182px; top:751px; width:30px; height:30px">
+    <div class="a tabic histic"><img id="icHist" src="img/f/tab-hist-off.svg" alt=""></div>
+    <div class="a tabic harrow"><div><img id="icArrow" src="img/f/tab-arrow-off.svg" alt=""></div></div>
+    <p class="a tablbl on" data-for="arm" style="left:100px">Arm</p>
+    <p class="a tablbl" data-for="controls" style="left:195px">Controls</p>
+    <p class="a tablbl" data-for="history" style="left:293.5px">History</p>
+  </div>
+  <div class="a homebar"></div>
+
+  <!-- ================= CONNECTION SHEET ================= -->
+  <div class="scrim" id="scrim"></div>
+  <div class="sheet" id="sheet" role="dialog" aria-label="Device connection">
+    <h2>Device</h2>
+    <div class="small" id="sheetStatus">Not connected</div>
+    <div class="btns" id="connectBtns">
+      <button class="outline" id="btnNet">Connect over internet</button>
+      <form id="netForm" class="netform" hidden autocomplete="on">
+        <label>Broker address<input id="nfUrl" placeholder="wss://your-deployment.emqxsl.com:8084/mqtt" required></label>
+        <label>Username<input id="nfUser" autocomplete="username"></label>
+        <label>Password<input id="nfPass" type="password" autocomplete="current-password"></label>
+        <label>Device name<input id="nfDevice" placeholder="phygital-01" required></label>
+        <button class="outline" type="submit">Connect</button>
+      </form>
+      <button class="outline" id="btnUsb">Connect over USB</button>
+      <button class="outline" id="btnDemo">Use demo data</button>
+    </div>
+    <div class="btns" id="disconnectBtns" hidden><button class="outline" id="btnDisconnect">Disconnect</button></div>
+    <div class="warn" id="serialWarn" hidden>USB needs Chrome or Edge, with this page opened on its own (phone.html) from <b>localhost</b>. Demo data works anywhere.</div>
+    <div class="kv" id="deviceInfo"></div>
+    <div class="small" style="margin-top:18px">Device log</div>
+    <pre class="log" id="log"></pre>
+  </div>
+</div>
+
+
+<script src="https://cdn.jsdelivr.net/npm/mqtt@5.10.1/dist/mqtt.min.js"></script>
+<script src="sources.js"></script>
+<script>
+// ================= SETTINGS MAPPING =================
+// Range presets → alarm radius (perimeter_m, 1.5–11 m on the device), as labelled in the design.
+const RANGES = { cons: 5, med: 7, full: 11 };
+const rangeFor = m => m <= 6 ? 'cons' : m <= 9 ? 'med' : 'full';
+// Segmented control and scene art per range, from the Figma frames: [x, width, height] of each tab inside the 342 x 50 control.
+const SEG = {
+  cons: { cons: [5, 124, 40], med: [135, 86, 32], full: [227, 101, 32] },
+  med:  { cons: [4, 124, 43], med: [134, 91, 40], full: [231, 101, 32] },
+  full: { cons: [4, 124, 43], med: [134, 75, 32], full: [215, 122, 40] },
+};
+// The yellow detection zone drawn over the tent scene: [file, left, top, width, height]
+const ZONE = {
+  cons: [['cons-1', 142, 325, 158, 49]],
+  med:  [['med-1', 141, 325, 160, 48], ['med-2', 122, 319, 200, 62]],
+  full: [['full-20', 109, 336, 22, 14], ['full-16', 140, 325, 160, 49], ['full-17', 123, 319, 198, 62], ['full-19', 133.9, 310.9, 214.2, 86.2],
+         ['full-21', 127, 314, 71, 21], ['full-22', 329.5, 360.5, 3.5, 7.5], ['full-23', 323.6, 366.5, 1.90039, 6.49987], ['full-24', 320, 370, 1.5, 6.5]],
+};
+// Volume 0–100 on screen → device volume 0.005–1.0, on a log scale so each step sounds even.
+// 15 ≈ 0.01 (the quiet default), 50 ≈ 0.05, 100 = 0.5.
+const toDevice = s => s <= 0 ? 0 : +(0.005 * Math.pow(200, s / 100)).toFixed(4);
+const toSlider = v => v <= 0 ? 0 : Math.max(1, Math.min(100, Math.round(100 * Math.log(v / 0.005) / Math.log(200))));
+
+// ================= STATE =================
+const HIST_KEY = 'phygital.history.v1', KEEP_S = 3 * 3600;
+let source = null, connected = false, state = {}, info = {}, lastStepsEvent = 0, editingVol = false;
+let range = 'med', armed = false, tab = 'arm';
+let hist = loadHistory();
+const $ = id => document.getElementById(id);
+
+function loadHistory() {
+  try { const h = JSON.parse(localStorage.getItem(HIST_KEY)); if (h && h.points && h.events) return { detections: [], ...h }; } catch (e) {}
+  return { points: [], events: [], detections: [] };
+}
+let saveTimer = null;
+function saveHistory() {
+  if (saveTimer) return;
+  saveTimer = setTimeout(() => {
+    saveTimer = null;
+    const cutoff = Date.now() - KEEP_S * 1000;
+    hist.points = hist.points.filter(p => p.t >= cutoff);
+    hist.events = hist.events.slice(-500);
+    hist.detections = hist.detections.filter(d => d.t >= Date.now() - 7 * 86400e3).slice(-300);
+    try { localStorage.setItem(HIST_KEY, JSON.stringify(hist)); } catch (e) {}
+  }, 5000);
+}
+
+const handlers = {
+  status(text, isConnected) {
+    connected = isConnected;
+    if (!isConnected) { source = null; state = {}; }
+    $('sheetStatus').textContent = text;
+    $('connectBtns').hidden = isConnected; $('disconnectBtns').hidden = !isConnected;
+    renderAll();
+  },
+  telemetry(delta) {
+    const prev = { ...state };
+    Object.assign(state, delta);
+    for (let i = 1; i <= 3; i++)
+      if (!['moving', 'still'].includes(state[`r${i}_state`])) for (const k of ['dist_m', 'speed_mps', 'dir']) delete state[`r${i}_${k}`];
+    if (state.perimeter !== 'inside') delete state.nearest_m;
+    detectEvents(prev, state);
+    trackDetection(prev, state);
+    const near = [1, 2, 3].map(i => state[`r${i}_dist_m`]).filter(v => v != null);
+    hist.points.push({ t: Date.now(), near: near.length ? Math.min(...near) : null, per: info.active_perimeter_m ?? null, zone: state.perimeter, mic: state.mic_level ?? null, alert: state.alert ?? null });
+    saveHistory();
+    renderArm();
+    if (tab === 'history') renderHistory();
+  },
+  attributes(a) {
+    const wasArmed = info.active_alarm_on;
+    Object.assign(info, a);
+    if (info.active_alarm_on != null) armed = !!info.active_alarm_on;
+    if (info.active_perimeter_m != null) range = rangeFor(info.active_perimeter_m);
+    if (info.active_volume != null && !editingVol) setVolUi(toSlider(info.active_volume));
+    if (wasArmed != null && wasArmed !== info.active_alarm_on) addEvent(info.active_alarm_on ? 'Armed' : 'Disarmed', 'set');
+    renderAll();
+  },
+  log(line) {
+    const el = $('log');
+    el.textContent = (el.textContent + line + '\n').split('\n').slice(-300).join('\n');
+    el.scrollTop = el.scrollHeight;
+  },
+};
+
+// One entry per detection (a person or an animal), with how close it came and which radar saw it.
+function nearestRadar(s) {
+  let best = null;
+  for (let i = 1; i <= 3; i++) { const d = s[`r${i}_dist_m`]; if (typeof d === 'number' && d > 0 && (!best || d < best.dist)) best = { dist: d, radar: i }; }
+  return best;
+}
+function trackDetection(a, b) {
+  const whoOf = s => s.alert !== undefined ? (s.alert === 'human' || s.alert === 'animal' ? s.alert : null) : (s.perimeter === 'inside' ? 'human' : null);
+  const who = whoOf(b), near = nearestRadar(b);
+  if (!who) return;
+  if (whoOf(a) !== who) hist.detections.push({ t: Date.now(), who, dist: near?.dist ?? null, radar: near?.radar ?? null });
+  else {
+    const d = hist.detections[hist.detections.length - 1];
+    if (d && d.who === who && near && (d.dist == null || near.dist < d.dist)) { d.dist = near.dist; d.radar = near.radar; }
+  }
+  saveHistory();
+  if (tab === 'history') renderHistory();
+}
+
+function addEvent(text, kind = '') {
+  hist.events.push({ t: Date.now(), text, kind });
+  saveHistory();
+  if (tab === 'history') renderHistory();
+}
+const meters = v => (typeof v === 'number' && v >= 0 ? ` ${v.toFixed(1)} m` : '');
+function detectEvents(a, b) {
+  if (b.alert !== undefined) {   // firmware 0.6+: the device decides person / animal / nothing (same text as the recorder)
+    if (a.alert !== b.alert && !(a.alert === undefined && b.alert === 'none')) {
+      if (a.alert === 'animal') addEvent(`Animal walked by${a.alert_closest_m >= 0 ? ', closest' + meters(a.alert_closest_m) : ' (heard, distance unknown)'}`, 'animal');
+      if (a.alert === 'human') addEvent(`Person gone${a.alert_closest_m >= 0 ? ', closest' + meters(a.alert_closest_m) : ''}`);
+      if (b.alert === 'human') addEvent(`Person approaching${b.alert_closest_m >= 0 ? ' at' + meters(b.alert_closest_m) : ''}${armed ? ' · alarm sounding' : ' (disarmed, no sound)'}`, 'in');
+    }
+  } else {
+    if (a.perimeter !== b.perimeter && b.perimeter === 'inside')
+      addEvent(`Someone entered the perimeter${b.nearest_m ? ' at ' + b.nearest_m.toFixed(1) + ' m' : ''}${armed ? '' : ' (disarmed)'}`, 'in');
+    if (a.perimeter && a.perimeter !== 'clear' && b.perimeter === 'clear') addEvent('Perimeter clear');
+  }
+  if (b.footsteps === 1 && a.footsteps !== 1 && Date.now() - lastStepsEvent > 15000) {
+    lastStepsEvent = Date.now();
+    addEvent(`Footsteps heard (${Math.round((b.sound_score ?? 0) * 100)}% sure)`, 'steps');
+  }
+  for (let i = 1; i <= 3; i++) {
+    const s = b[`r${i}_state`];
+    if (a[`r${i}_state`] !== s && (s === 'offline' || s === 'no_data')) addEvent(`Sensor ${i} stopped responding`);
+  }
+}
+
+// ================= RENDER =================
+function renderAll() { renderArm(); renderControls(); renderInfo(); renderStatus(); if (tab === 'history') renderHistory(); }
+
+function renderStatus() {
+  const on = connected && info.device_online !== false;
+  // Figma: connected = dot at x 118, text at 150; disconnected = dot at 107, text at 139
+  $('statusDot').src = on ? 'img/f/dot-blue.svg' : 'img/f/dot-red.svg';
+  $('statusDot').style.left = on ? '118px' : '107px';
+  $('statusText').style.left = on ? '150px' : '139px';
+  $('statusText').textContent = on ? 'Device connected' : 'Device disconnected';
+  $('status').hidden = tab === 'history' || (tab === 'arm' && !$('alertHead').hidden);   // History has none; on Arm the alert lines take its place
+}
+
+function renderArm() {
+  const inside = state.perimeter === 'inside';
+  const person = connected && (state.alert !== undefined ? state.alert === 'human' : inside);   // older firmware: anyone inside
+  const animal = connected && state.alert === 'animal';
+  const dists = [state.nearest_m, ...[1, 2, 3].map(i => state[`r${i}_dist_m`])].filter(v => typeof v === 'number' && v > 0);
+  const head = (person || animal) && dists.length > 0;
+  const m = head ? Math.max(1, Math.round(Math.min(...dists))) : 0;
+  $('s-arm').classList.toggle('withhead', head);
+  $('alertHead').hidden = !head;
+  $('awayText').textContent = `${m} ${m === 1 ? 'meter' : 'meters'} away`;
+  $('awayText').style.color = person ? '' : '#000';
+  $('activityText').textContent = person ? 'Human activity detected' : 'Animal activity detected';
+  $('activityDot').style.visibility = person ? '' : 'hidden';
+  $('puck').src = `img/f/puck-${person && armed ? 'alert' : armed ? 'armed' : 'disarmed'}.svg`;
+  $('armBtn').classList.toggle('red', person && armed);
+  $('armLabel').textContent = armed ? '        Armed ' : '       Disarmed';   // Figma pads the label to make room for the lock icon
+  $('lockIc').src = armed ? 'img/f/ic-lock.svg' : 'img/f/ic-unlock.svg';
+  $('lockIc').style.left = armed ? '153px' : '145px';
+  renderStatus();
+}
+
+function renderControls() {
+  document.querySelectorAll('#seg button').forEach(btn => {
+    const [x, w, h] = SEG[range][btn.dataset.range];
+    btn.classList.toggle('on', btn.dataset.range === range);
+    Object.assign(btn.style, { left: x + 'px', width: w + 'px', height: h + 'px', top: (50 - h) / 2 + 'px' });
+  });
+  $('seg').style.top = range === 'full' ? '475px' : '474px';
+  $('scene').src = range === 'full' ? 'img/f/scene-full-base.svg' : 'img/f/scene.svg';
+  $('rangeArt').innerHTML = ZONE[range].map(([f, l, t, w, h]) =>
+    `<img class="a" src="img/f/${f}.svg" alt="" style="left:${l}px; top:${t}px; width:${w}px; height:${h}px">`).join('');
+  $('rangeMeters').innerHTML = `<b>${RANGES[range]} </b>meters`;
+  for (const id of ['rangeMeters', 'lblRange']) $(id).style.top = range === 'full' ? '435px' : '434px';
+  $('previewBtn').disabled = !connected;
+}
+// Slider fill width, from Figma (20 → 92 px, 35 → 128 px), reaching the full 342 px at 100.
+function setVolUi(s) {
+  $('vol').value = s; $('volNum').textContent = s;
+  const w = s <= 35 ? 44 + 2.4 * s : 128 + (s - 35) * (342 - 128) / 65;
+  $('volFill').style.width = Math.round(w) + 'px';
+}
+
+// ---- History: radar plot + activity list ----
+// Plot geometry from Figma: centre of the rings, inner circle (tent) and outer ring radii.
+const CX = 200.82, CY = 288.0, R0 = 40.68, R1 = 130.82, MAX_M = 11;
+// Which part of the plot each radar covers (degrees, counter-clockwise from 3 o'clock), split by the three spokes.
+// Match this to how the radars face.
+const SECTOR = { 1: [90, 221], 2: [221, 327.2], 3: [327.2, 450] };
+const frac = t => { const x = Math.sin(t / 1000 * 12.9898) * 43758.5453; return x - Math.floor(x); };   // steady pseudo-random 0..1 per entry
+function blobPos(d) {
+  if (d.pos) return d.pos;
+  const [a0, a1] = SECTOR[d.radar] || [0, 360];
+  const a = (a0 + (a1 - a0) * (0.2 + 0.6 * frac(d.t))) * Math.PI / 180;
+  const r = d.dist == null ? (R0 + R1) / 2 : R0 + Math.min(Math.max(d.dist, 0), MAX_M) / MAX_M * (R1 - R0);
+  return [CX + r * Math.cos(a), CY - r * Math.sin(a)];
+}
+let selected = null, mockTimes = false;
+const fmtTime = t => { const d = new Date(t), today = d.toDateString() === new Date().toDateString();
+  return (today || mockTimes ? '' : d.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ', ') + d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }); };
+const fmtDist = m => { if (m == null) return ''; const r = Math.max(1, Math.round(m)); return ` • ${r} ${r === 1 ? 'meter' : 'meters'} away`; };
+
+// History comes from the recorder when connected over the internet (kept for weeks), otherwise from this browser (last 7 days).
+let remote = null, remoteAt = 0;
+const useRecorder = () => source instanceof MqttSource && info.recorder_online;
+async function fetchRemote(force) {
+  if (!useRecorder() || (!force && Date.now() - remoteAt < 20000)) return;
+  remoteAt = Date.now();
+  try { remote = await source.history('detections', Date.now() - 7 * 86400e3); } catch (err) { remote = null; }
+  if (tab === 'history') renderHistory();
+}
+function renderHistory() {
+  if (useRecorder()) fetchRemote();
+  const items = (useRecorder() && remote ? [...remote] : [...hist.detections]).sort((a, b) => b.t - a.t).slice(0, 60);
+  if (!items.some(d => d.t === selected)) selected = null;
+  $('blobs').innerHTML = '';
+  for (const d of [...items].reverse()) {
+    const [x, y] = blobPos(d), img = document.createElement('img');
+    // Figma glows: person 90 px (opacity built in), animal 66.8 px at 0.57, or full strength when its entry is selected
+    const human = d.who === 'human', size = human ? 90 : 66.8;
+    img.className = 'blob'; img.alt = '';
+    img.src = human ? 'img/f/glow-human.svg' : selected === d.t ? 'img/f/glow-animal-sel.svg' : 'img/f/glow-animal.svg';
+    Object.assign(img.style, { left: x - size / 2 + 'px', top: y - size / 2 + 'px', width: size + 'px', height: size + 'px' });
+    img.onclick = () => { selected = selected === d.t ? null : d.t; renderHistory(); };
+    $('blobs').append(img);
+  }
+  const list = $('alist'); list.textContent = '';
+  for (const d of items) {
+    const row = document.createElement('div'); row.className = 'arow' + (selected === d.t ? ' sel' : '');
+    row.innerHTML = '<div class="hl"></div><img class="a div" src="img/f/divider.svg" alt="">' + (d.who === 'human'
+      ? '<img class="a" src="img/f/glow-human-s.svg" alt="" style="left:53.4px; top:14.4px; width:24.2px; height:24.2px">'
+      : '<img class="a" src="img/f/glow-animal-s.svg" alt="" style="left:55.1px; top:12.1px; width:21.8px; height:21.8px">') + '<div class="t"></div><div class="s"></div>';
+    row.querySelector('.t').textContent = d.who === 'human' ? 'Someone entered the perimeter' : 'Animal entered the perimeter';
+    row.querySelector('.s').textContent = fmtTime(d.t) + fmtDist(d.dist);
+    row.onclick = () => { selected = selected === d.t ? null : d.t; renderHistory(); };
+    list.append(row);
+  }
+  if (!items.length) { const e = document.createElement('div'); e.className = 'aempty'; e.textContent = 'Nothing detected yet.'; list.append(e); }
+}
+function renderInfo() {
+  const rows = [];
+  if (info.firmware) rows.push(['Firmware', info.firmware]);
+  if (info.mac_address) rows.push(['MAC address', info.mac_address]);
+  if (info.wifi_rssi_dbm) rows.push(['Wi-Fi signal', info.wifi_rssi_dbm + ' dBm']);
+  for (let i = 1; i <= 3; i++) if (info[`radar${i}_online`] != null) rows.push([`Sensor ${i}`, info[`radar${i}_online`] ? 'online' : 'offline']);
+  for (const [k, n] of [['mic_ok', 'Microphone'], ['speaker_ok', 'Speaker'], ['sound_ai_ok', 'Footstep AI']]) if (info[k] != null) rows.push([n, info[k] ? 'ok' : 'failed']);
+  if (info.active_perimeter_m != null) rows.push(['LED', info.active_led_on ? 'on' : 'off']);
+  const el = $('deviceInfo'); el.textContent = '';
+  for (const [k, v] of rows) { const a = document.createElement('div'), b = document.createElement('div'); a.textContent = k; b.textContent = v; el.append(a, b); }
+}
+
+// ================= ACTIONS =================
+document.querySelectorAll('.tab').forEach(b => b.onclick = () => {
+  tab = b.dataset.tab;
+  document.querySelectorAll('.screen').forEach(s => s.classList.toggle('active', s.id === 's-' + tab));
+  document.querySelectorAll('.tablbl').forEach(l => l.classList.toggle('on', l.dataset.for === tab));
+  $('icArm').src = `img/f/tab-arm-${tab === 'arm' ? 'on' : 'off'}.svg`;
+  $('icCtrl').src = `img/f/tab-ctrl-${tab === 'controls' ? 'on' : 'off'}.svg`;
+  $('icHist').src = `img/f/tab-hist-${tab === 'history' ? 'on' : 'off'}.svg`;
+  $('icArrow').src = `img/f/tab-arrow-${tab === 'history' ? 'on' : 'off'}.svg`;
+  $('phone').classList.toggle('on-history', tab === 'history');
+  renderStatus();
+  if (tab === 'history') renderHistory();
+});
+
+const openSheet = open => { $('sheet').classList.toggle('open', open); $('scrim').classList.toggle('open', open); };
+$('status').onclick = () => openSheet(true);
+$('scrim').onclick = () => openSheet(false);
+
+async function start(src) {
+  if (source) await source.disconnect();
+  state = {}; info = {}; source = src;
+  try { await src.connect(handlers); openSheet(false); }
+  catch (e) {
+    source = null;
+    handlers.status(e.name === 'NotFoundError' ? 'Not connected' : /open/i.test(e.message) ? 'Port busy: quit Arduino IDE / Serial Monitor first' : e.message, false);
+  }
+}
+$('btnNet').onclick = () => {
+  const f = $('netForm'), b = loadBroker();
+  f.hidden = !f.hidden;
+  $('nfUrl').value = b.url; $('nfUser').value = b.username; $('nfPass').value = b.password; $('nfDevice').value = b.device;
+};
+$('netForm').onsubmit = e => {
+  e.preventDefault();
+  const b = { ...loadBroker(), auto: true, url: $('nfUrl').value.trim(), username: $('nfUser').value.trim(), password: $('nfPass').value, device: $('nfDevice').value.trim() };
+  saveBroker(b);
+  $('sheetStatus').textContent = 'Connecting…';
+  start(new MqttSource(b));
+};
+$('btnUsb').onclick = () => start(new UsbSource());
+$('btnDemo').onclick = () => start(new DemoSource());
+$('btnDisconnect').onclick = async () => {
+  if (source instanceof MqttSource) saveBroker({ ...loadBroker(), auto: false });
+  const s = source; source = null; await s?.disconnect(); handlers.status('Not connected', false);
+};
+
+$('armBtn').onclick = () => {
+  if (!connected) return openSheet(true);
+  armed = !armed; renderArm();                                 // optimistic; the device confirms via active_alarm_on
+  source.sendConfig({ alarm_on: armed });
+};
+document.querySelectorAll('#seg button').forEach(b => b.onclick = () => {
+  if (!connected) return openSheet(true);
+  range = b.dataset.range; renderControls();
+  source.sendConfig({ perimeter_m: RANGES[range] });
+  addEvent(`Detection range set to ${b.textContent} (${RANGES[range]} m)`, 'set');
+});
+$('vol').addEventListener('input', e => { editingVol = true; setVolUi(+e.target.value); });
+$('vol').addEventListener('change', e => {
+  editingVol = false;
+  if (!connected) { setVolUi(toSlider(info.active_volume ?? 0.01)); return openSheet(true); }
+  source.sendConfig({ volume: toDevice(+e.target.value) });
+});
+$('previewBtn').onclick = () => source?.preview();
+setInterval(() => { if (tab === 'history' && connected) renderHistory(); }, 5000);
+navigator.serial?.addEventListener('disconnect', () => { if (source instanceof UsbSource) { source.disconnect(); handlers.status('Board unplugged', false); } });
+if (!('serial' in navigator) || !isSecureContext) $('serialWarn').hidden = false;
+
+setVolUi(35);
+renderAll();
+// Design states for demos and screenshots: phone.html#mock=arm-alert, arm-armed, arm-disarmed, arm-disconnected,
+// controls-cons, controls-med, controls-full, history, history-selected
+const mock = (location.hash.match(/^#mock=([\w-]+)/) || [])[1];
+if (mock) {
+  connected = !mock.endsWith('disconnected');
+  armed = mock === 'arm-alert' || mock === 'arm-armed';
+  if (mock === 'arm-alert') state = { alert: 'human', nearest_m: 11 };
+  const [scr, opt] = mock.split('-');
+  if (scr === 'controls') {
+    range = opt;
+    setVolUi(opt === 'cons' ? 20 : 35);
+  }
+  if (scr === 'history') {   // the entries in the History mockups
+    const at = (h, m) => { const d = new Date(); d.setHours(h, m, 0, 0); return d.getTime(); };
+    mockTimes = true;
+    hist.detections = [
+      { t: at(12, 29) - 86400e3, who: 'animal', dist: opt === 'selected' ? 5 : 2, radar: 1, pos: [124, 291] },
+      { t: at(1, 1), who: 'animal', dist: opt === 'selected' ? 1 : 11, radar: 3, pos: opt === 'selected' ? [314, 307] : [319, 323] },
+      { t: at(1, 22), who: 'human', dist: opt === 'selected' ? 11 : 8, radar: 1, pos: [112, 233] },
+    ];
+    if (opt === 'selected') selected = hist.detections[1].t;
+  }
+  document.querySelector(`.tab[data-tab="${scr}"]`)?.click();
+  renderAll();
+} else if (loadBroker().auto && loadBroker().url) start(new MqttSource(loadBroker()));   // reconnect to the last internet device
+</script>
+</body>
+</html>

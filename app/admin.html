@@ -10,7 +10,7 @@
 :root {
   --bg: #EBEADF; --ink: #121212; --muted: #7E7C70; --line: #DDDBCD; --card: #FFFFFF; --well: #F3F2EA;
   --ok: #5F7F3A; --ok-soft: #E3EBD3; --bad: #C2502F; --bad-soft: #F6DED5; --warn: #B07A12;
-  --c1: #2F6FDE; --c2: #C98A12; --c3: #9B51E0; --per: #E58C6E;
+  --c1: #2F6FDE; --c2: #C98A12; --c3: #9B51E0; --per: #E58C6E; --animal: #8A6A3F;
 }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
@@ -61,7 +61,7 @@ td.flash { animation: flash 1s ease-out; }
 .log td { font: 12px/1.4 ui-monospace, Menlo, monospace; word-break: break-all; }
 .events td:first-child { white-space: nowrap; color: var(--muted); width: 1%; }
 .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 8px; background: #C9C7BA; }
-.dot.in { background: var(--bad); } .dot.steps { background: #F2C984; } .dot.set { background: var(--ok); } .dot.warn { background: var(--warn); }
+.dot.in { background: var(--bad); } .dot.steps { background: #F2C984; } .dot.set { background: var(--ok); } .dot.warn { background: var(--warn); } .dot.animal { background: var(--animal); }
 .note { font-size: 12px; color: var(--muted); }
 .connect { position: fixed; inset: 0; background: rgba(30, 30, 20, .3); display: grid; place-items: center; z-index: 10; }
 .connect .card { width: min(440px, calc(100% - 32px)); }
@@ -122,10 +122,10 @@ td.flash { animation: flash 1s ease-out; }
     </h2>
     <div class="note">Distance per radar (m)</div>
     <svg class="chart" id="chDist"></svg>
-    <div class="legend"><span><i style="background:var(--c1)"></i>Radar 1</span><span><i style="background:var(--c2)"></i>Radar 2</span><span><i style="background:var(--c3)"></i>Radar 3</span><span><i style="background:var(--per)"></i>Alarm radius</span></div>
+    <div class="legend"><span><i style="background:var(--c1)"></i>Radar 1</span><span><i style="background:var(--c2)"></i>Radar 2</span><span><i style="background:var(--c3)"></i>Radar 3</span><span><i style="background:var(--per)"></i>Alarm radius</span><span><i style="background:var(--bad)"></i>Person alert</span><span><i style="background:var(--animal)"></i>Animal</span></div>
     <div class="note" style="margin-top:14px">Microphone level</div>
     <svg class="chart" id="chMic" style="height:120px"></svg>
-    <div class="note" style="margin-top:14px">Footstep confidence (dots mark footsteps)</div>
+    <div class="note" style="margin-top:14px">Sound model: <span style="color:var(--c3)">human footsteps</span> and <span style="color:var(--animal)">animal footsteps</span> confidence (dots mark sure human footsteps)</div>
     <svg class="chart" id="chSound" style="height:110px"></svg>
   </section>
 
@@ -186,8 +186,9 @@ const handlers = {
     if (state.perimeter !== 'inside') delete state.nearest_m;
     const near = [1, 2, 3].map(i => state[`r${i}_dist_m`]).filter(v => v != null);
     live.push({ t, r1: state.r1_dist_m ?? null, r2: state.r2_dist_m ?? null, r3: state.r3_dist_m ?? null,
-      nearest: near.length ? Math.min(...near) : null, mic: state.mic_level ?? null, sound_score: state.sound_score == null ? null : state.sound_label === 'human_footsteps' ? state.sound_score : 1 - state.sound_score,
-      footsteps: state.footsteps ?? 0, perimeter: info.active_perimeter_m ?? null });
+      nearest: near.length ? Math.min(...near) : null, mic: state.mic_level ?? null, sound_score: state.p_human ?? (state.sound_score == null ? null : state.sound_label === 'human_footsteps' ? state.sound_score : 1 - state.sound_score),
+      p_animal: state.p_animal ?? null, footsteps: state.footsteps ?? 0, perimeter: info.active_perimeter_m ?? null,
+      human: state.alert === 'human' ? 1 : 0, animal: state.alert === 'animal' ? 1 : 0 });
     if (live.length > 5000) live.splice(0, live.length - 5000);
     renderReadings(delta); renderSummary();
   },
@@ -312,8 +313,12 @@ function renderHealth() {
   ]);
 }
 function renderSummary() {
-  const z = state.perimeter;
+  const z = state.perimeter, cm = v => v >= 0 ? `closest ${v.toFixed(1)} m` : 'distance unknown';
   kv('summary', [
+    ['Alert', state.alert === 'human' ? `<span class="badv">person approaching</span> · ${state.sounding ? 'alarm sounding' : 'alarm off'} · ${cm(state.alert_closest_m)}`
+            : state.alert === 'animal' ? `<span style="color:var(--animal);font-weight:600">animal</span> · no sound · ${cm(state.alert_closest_m)}`
+            : state.alert ? 'none' : '—'],
+    ['Why', esc(state.alert_reason ?? '—')],
     ['Perimeter', z === 'inside' ? `<span class="badv">someone inside</span>${state.nearest_m != null ? ' · ' + state.nearest_m.toFixed(2) + ' m' : ''}` : esc(z ?? '—')],
     ['Armed', info.active_alarm_on == null ? '—' : info.active_alarm_on ? 'yes' : 'no'],
     ['Alarm radius', info.active_perimeter_m != null ? `${info.active_perimeter_m} m` : '—'],
@@ -327,8 +332,9 @@ const GROUPS = [
   ['Radar 1', ['r1_state', 'r1_dist_m', 'r1_speed_mps', 'r1_dir', 'r1_energy']],
   ['Radar 2', ['r2_state', 'r2_dist_m', 'r2_speed_mps', 'r2_dir', 'r2_energy']],
   ['Radar 3', ['r3_state', 'r3_dist_m', 'r3_speed_mps', 'r3_dir', 'r3_energy']],
+  ['Alert', ['alert', 'alert_reason', 'sounding', 'alert_closest_m']],
   ['Perimeter & LED', ['perimeter', 'nearest_m', 'led']],
-  ['Sound model', ['sound_label', 'sound_score', 'footsteps']],
+  ['Sound model', ['sound_label', 'sound_score', 'p_human', 'p_animal', 'footsteps']],
   ['Microphone', ['mic_state', 'mic_level', 'mic_peak_hz']],
 ];
 function renderReadings(delta) {
@@ -343,7 +349,7 @@ function renderAges() {
   if (devices.size) renderHealth();
 }
 
-function chart(svg, series, { max, ticks, unit = '', dots }) {
+function chart(svg, series, { max, ticks, unit = '', dots, bands }) {
   const w = svg.clientWidth || 800, h = svg.clientHeight || 190, padL = 40, padB = 18, padT = 6;
   const now = Date.now(), t0 = now - span * 1000;
   const lastStored = stored?.length ? stored[stored.length - 1].t : 0;
@@ -365,6 +371,8 @@ function chart(svg, series, { max, ticks, unit = '', dots }) {
     }
     if (d) s += `<path d="${d}" fill="none" stroke="${ser.color}" stroke-width="${ser.width || 1.8}" ${ser.dash ? 'stroke-dasharray="5 4"' : ''} stroke-linejoin="round"/>`;
   }
+  if (bands) for (const p of pts)   // alert strip along the bottom: person = red, animal = brown
+    if (p.human || p.animal) s += `<rect x="${x(p.t).toFixed(1)}" y="${h - padB - 5}" width="3" height="5" fill="var(${p.human ? '--bad' : '--animal'})"/>`;
   if (dots) for (const p of pts) if (p[dots]) s += `<circle cx="${x(p.t).toFixed(1)}" cy="${y(max * 0.95)}" r="3" fill="#E5A93A"/>`;
   if (!pts.length) s += `<text x="${(w + padL) / 2}" y="${h / 2}" text-anchor="middle" font-size="13" fill="#7E7C70">No data in this range${src && !src.recorder ? ' (recorder offline: only live data)' : ''}</text>`;
   svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
@@ -372,11 +380,11 @@ function chart(svg, series, { max, ticks, unit = '', dots }) {
 }
 function renderCharts() {
   chart($('chDist'), [{ key: 'perimeter', color: 'var(--per)', dash: true, width: 1.5 }, { key: 'r1', color: 'var(--c1)' }, { key: 'r2', color: 'var(--c2)' }, { key: 'r3', color: 'var(--c3)' }],
-        { max: MAX_M, ticks: [0, 3, 6, 9], unit: ' m' });
+        { max: MAX_M, ticks: [0, 3, 6, 9], unit: ' m', bands: true });
   const all = [...(stored || []), ...live].map(p => p.mic || 0);
   const top = Math.max(1000, Math.ceil(Math.max(0, ...all) / 1000) * 1000);
   chart($('chMic'), [{ key: 'mic', color: 'var(--c1)', width: 1.4 }], { max: top, ticks: [0, top / 2, top] });
-  chart($('chSound'), [{ key: 'sound_score', color: 'var(--c3)', width: 1.4 }], { max: 1, ticks: [0, 0.5, 1], dots: 'footsteps' });
+  chart($('chSound'), [{ key: 'sound_score', color: 'var(--c3)', width: 1.4 }, { key: 'p_animal', color: 'var(--animal)', width: 1.4 }], { max: 1, ticks: [0, 0.5, 1], dots: 'footsteps' });
 }
 function renderEvents() {
   $('events').innerHTML = events.length

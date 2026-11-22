@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1230" height="760" viewBox="0 0 1230 760" role="img">
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="760" viewBox="0 0 900 760" role="img">
 <title>Breadboard layout for the ESP32-S3 phygital sensor hub</title>
-<desc>Two half-size breadboards joined with their power rails removed. The ESP32-S3 straddles the seam. A 5V battery powers the rails; the S3 runs from USB. Radars and mic connect with jumpers on the left board; the amp, RGB LED and resistors plug into the right board.</desc>
+<desc>Two half-size breadboards joined with their power rails removed. The ESP32-S3 straddles the seam. A 5V battery module powers the rails, and the S3 takes its power from the 5V rail through its 5V pin (row 24). Radars and mic connect with jumpers on the left board; the amp plugs into the right board.</desc>
 <style>
 text { font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; }
 .th { font-size: 14px; font-weight: 500; fill: #2C2C2A; }
@@ -9,7 +9,7 @@ text { font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; }
 .pin { font-size: 11px; fill: #444441; }
 .wire { fill: none; stroke-width: 2.4; stroke-linecap: round; }
 </style>
-<rect x="0" y="0" width="1230" height="760" fill="#FFFFFF"/>
+<rect x="0" y="0" width="900" height="760" fill="#FFFFFF"/>
 <rect x="206" y="80" width="292" height="556" rx="6" fill="#F4F3EE" stroke="#B4B2A9" stroke-width="0.8"/>
 <rect x="383.0" y="84" width="14" height="548" fill="#E4E2DA"/>
 <text class="tx" x="300" y="74" text-anchor="middle">a</text>
@@ -922,6 +922,9 @@ text { font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; }
 <circle cx="240" cy="96" r="3.6" fill="#E24B4A" stroke="#FFFFFF" stroke-width="1"/>
 <path class="wire" d="M 180 82 C 200 82, 202 96, 222 96" stroke="#2C2C2A"/>
 <circle cx="222" cy="96" r="3.6" fill="#2C2C2A" stroke="#FFFFFF" stroke-width="1"/>
+<path class="wire" d="M 300 510 L 240 510" stroke="#E24B4A"/>
+<circle cx="300" cy="510" r="3.6" fill="#E24B4A" stroke="#FFFFFF" stroke-width="1"/>
+<circle cx="240" cy="510" r="3.6" fill="#E24B4A" stroke="#FFFFFF" stroke-width="1"/>
 <path class="wire" d="M 300 528 L 222 528" stroke="#2C2C2A"/>
 <circle cx="300" cy="528" r="3.6" fill="#2C2C2A" stroke="#FFFFFF" stroke-width="1"/>
 <circle cx="222" cy="528" r="3.6" fill="#2C2C2A" stroke="#FFFFFF" stroke-width="1"/>
@@ -959,44 +962,6 @@ text { font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; }
 <circle cx="300" cy="420" r="3.6" fill="#7F77DD" stroke="#FFFFFF" stroke-width="1"/>
 <path class="wire" d="M 180 446 C 250 446, 230 438, 300 438" stroke="#7F77DD"/>
 <circle cx="300" cy="438" r="3.6" fill="#7F77DD" stroke="#FFFFFF" stroke-width="1"/>
-<line x1="588" y1="204" x2="624" y2="204" stroke="#888780" stroke-width="1.6"/>
-<circle cx="588" cy="204" r="2.6" fill="#888780"/>
-<circle cx="624" cy="204" r="2.6" fill="#888780"/>
-<rect x="595.0" y="199.5" width="22" height="9" rx="3" fill="#E8D5A8" stroke="#BA7517" stroke-width="0.6"/>
-<rect x="599.0" y="199.5" width="2" height="9" fill="#E24B4A"/>
-<rect x="603.0" y="199.5" width="2" height="9" fill="#E24B4A"/>
-<rect x="607.0" y="199.5" width="2" height="9" fill="#5F3A1E"/>
-<text class="tx" x="0" y="0" text-anchor="start"></text>
-<line x1="588" y1="240" x2="624" y2="240" stroke="#888780" stroke-width="1.6"/>
-<circle cx="588" cy="240" r="2.6" fill="#888780"/>
-<circle cx="624" cy="240" r="2.6" fill="#888780"/>
-<rect x="595.0" y="235.5" width="22" height="9" rx="3" fill="#E8D5A8" stroke="#BA7517" stroke-width="0.6"/>
-<rect x="599.0" y="235.5" width="2" height="9" fill="#E24B4A"/>
-<rect x="603.0" y="235.5" width="2" height="9" fill="#E24B4A"/>
-<rect x="607.0" y="235.5" width="2" height="9" fill="#5F3A1E"/>
-<text class="tx" x="0" y="0" text-anchor="start"></text>
-<line x1="588" y1="258" x2="624" y2="258" stroke="#888780" stroke-width="1.6"/>
-<circle cx="588" cy="258" r="2.6" fill="#888780"/>
-<circle cx="624" cy="258" r="2.6" fill="#888780"/>
-<rect x="595.0" y="253.5" width="22" height="9" rx="3" fill="#E8D5A8" stroke="#BA7517" stroke-width="0.6"/>
-<rect x="599.0" y="253.5" width="2" height="9" fill="#E24B4A"/>
-<rect x="603.0" y="253.5" width="2" height="9" fill="#E24B4A"/>
-<rect x="607.0" y="253.5" width="2" height="9" fill="#5F3A1E"/>
-<text class="tx" x="0" y="0" text-anchor="start"></text>
-<text class="tx" x="660" y="308" text-anchor="middle">220 Ω ×3</text>
-<circle cx="660" cy="204" r="3.6" fill="#E24B4A" stroke="#FFFFFF" stroke-width="1"/>
-<circle cx="660" cy="222" r="3.6" fill="#2C2C2A" stroke="#FFFFFF" stroke-width="1"/>
-<circle cx="660" cy="240" r="3.6" fill="#3B6D11" stroke="#FFFFFF" stroke-width="1"/>
-<circle cx="660" cy="258" r="3.6" fill="#185FA5" stroke="#FFFFFF" stroke-width="1"/>
-<circle cx="660" cy="231.0" r="37" fill="#F1EFE8" fill-opacity="0.35" stroke="#5F5E5A" stroke-width="1" stroke-dasharray="3 2"/>
-<text class="pin" x="669" y="208">R</text>
-<text class="pin" x="669" y="226">K</text>
-<text class="pin" x="669" y="244">G</text>
-<text class="pin" x="669" y="262">B</text>
-<text class="ts" x="660" y="160" text-anchor="middle">RGB LED</text>
-<path class="wire" d="M 696 222 L 736 222" stroke="#2C2C2A"/>
-<circle cx="696" cy="222" r="3.6" fill="#2C2C2A" stroke="#FFFFFF" stroke-width="1"/>
-<circle cx="736" cy="222" r="3.6" fill="#2C2C2A" stroke="#FFFFFF" stroke-width="1"/>
 <path class="wire" d="M 222 600 L 736 600" stroke="#2C2C2A"/>
 <circle cx="222" cy="600" r="3.6" fill="#2C2C2A" stroke="#FFFFFF" stroke-width="1"/>
 <circle cx="736" cy="600" r="3.6" fill="#2C2C2A" stroke="#FFFFFF" stroke-width="1"/>
@@ -1038,51 +1003,6 @@ text { font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; }
 <path class="wire" d="M 642 528 C 642 582, 714 582, 754 582" stroke="#E24B4A"/>
 <circle cx="642" cy="528" r="3.6" fill="#E24B4A" stroke="#FFFFFF" stroke-width="1"/>
 <circle cx="754" cy="582" r="3.6" fill="#E24B4A" stroke="#FFFFFF" stroke-width="1"/>
-<rect x="856" y="40" width="350" height="420" rx="10" fill="#FAF9F5" stroke="#B4B2A9" stroke-width="0.8"/>
-<text class="th" x="876" y="66">LED detail (common cathode)</text>
-<path d="M 900 160 L 900 116 A 26 26 0 0 1 952 116 L 952 160 Z" fill="#F1EFE8" stroke="#5F5E5A" stroke-width="1"/>
-<line x1="952" y1="118" x2="952" y2="160" stroke="#5F5E5A" stroke-width="2.5"/>
-<rect x="896" y="160" width="60" height="6" rx="1" fill="#D3D1C7" stroke="#5F5E5A" stroke-width="0.6"/>
-<line x1="908" y1="166" x2="908" y2="230" stroke="#E24B4A" stroke-width="2"/>
-<text class="pin" x="908" y="244" text-anchor="middle">R</text>
-<line x1="920" y1="166" x2="920" y2="262" stroke="#2C2C2A" stroke-width="2"/>
-<text class="pin" x="920" y="276" text-anchor="middle">K</text>
-<line x1="932" y1="166" x2="932" y2="230" stroke="#3B6D11" stroke-width="2"/>
-<text class="pin" x="932" y="244" text-anchor="middle">G</text>
-<line x1="944" y1="166" x2="944" y2="230" stroke="#185FA5" stroke-width="2"/>
-<text class="pin" x="944" y="244" text-anchor="middle">B</text>
-<text class="tx" x="926" y="292" text-anchor="middle">K = longest leg</text>
-<text class="tx" x="926" y="306" text-anchor="middle">flat edge on R side*</text>
-<text class="ts" x="1006" y="124">GPIO 1</text>
-<line x1="1058" y1="120" x2="1086" y2="120" stroke="#E24B4A" stroke-width="2"/>
-<rect x="1086" y="114" width="36" height="12" rx="3" fill="#E8D5A8" stroke="#BA7517" stroke-width="0.6"/>
-<text class="tx" x="1104" y="110" text-anchor="middle">220 Ω</text>
-<line x1="1122" y1="120" x2="1156" y2="120" stroke="#E24B4A" stroke-width="2"/>
-<text class="ts" x="1162" y="124">R leg</text>
-<text class="ts" x="1006" y="174">GPIO 42</text>
-<line x1="1058" y1="170" x2="1086" y2="170" stroke="#3B6D11" stroke-width="2"/>
-<rect x="1086" y="164" width="36" height="12" rx="3" fill="#E8D5A8" stroke="#BA7517" stroke-width="0.6"/>
-<text class="tx" x="1104" y="160" text-anchor="middle">220 Ω</text>
-<line x1="1122" y1="170" x2="1156" y2="170" stroke="#3B6D11" stroke-width="2"/>
-<text class="ts" x="1162" y="174">G leg</text>
-<text class="ts" x="1006" y="224">GPIO 41</text>
-<line x1="1058" y1="220" x2="1086" y2="220" stroke="#185FA5" stroke-width="2"/>
-<rect x="1086" y="214" width="36" height="12" rx="3" fill="#E8D5A8" stroke="#BA7517" stroke-width="0.6"/>
-<text class="tx" x="1104" y="210" text-anchor="middle">220 Ω</text>
-<line x1="1122" y1="220" x2="1156" y2="220" stroke="#185FA5" stroke-width="2"/>
-<text class="ts" x="1162" y="224">B leg</text>
-<text class="ts" x="1006" y="274">K leg</text>
-<line x1="1046" y1="270" x2="1156" y2="270" stroke="#2C2C2A" stroke-width="2"/>
-<text class="ts" x="1162" y="274">GND</text>
-<text class="tx" x="1066" y="288">no resistor here</text>
-<text class="ts" x="876" y="336">One 220 Ω resistor per colour, between the GPIO</text>
-<text class="ts" x="876" y="352">and that colour's leg. Never on the common leg.</text>
-<text class="ts" x="876" y="368">On the board: each resistor jumps the channel,</text>
-<text class="ts" x="876" y="384">from the pin's row (column e) to the same row</text>
-<text class="ts" x="876" y="400">on the other side (column f).</text>
-<text class="ts" x="876" y="416">LED legs go in column h, rows 7–10: R, K, G, B.</text>
-<text class="ts" x="876" y="432">A black jumper takes K (row 8) to the GND rail.</text>
-<text class="ts" x="876" y="448">*Leg order varies by maker; check your LED's sheet.</text>
 <line x1="20" y1="690" x2="46" y2="690" stroke="#E24B4A" stroke-width="3" stroke-linecap="round"/>
 <text class="ts" x="52" y="694">5V</text>
 <line x1="92" y1="690" x2="118" y2="690" stroke="#2C2C2A" stroke-width="3" stroke-linecap="round"/>
