@@ -1,0 +1,533 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#EBEADF">
+<title>Phygital</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #EBEADF; --ink: #121212; --muted: #8E8C80; --faint: #CFCEC6; --line: #BDBBA4;
+  --card: #FFFFFF; --well: #D3D2C2; --sheet: #F6F5EE;
+  --y1: #F7D47A; --y2: #F4DC97; --y3: #F2E3B3; --y4: #F0E8CB; --y5: #EEEAD6;
+  --g1: #8EA46B; --g2: #A3B584; --g3: #B9C6A0; --g4: #CDD5BA; --g5: #DDE0CF;
+  --r1: #E58C6E; --r2: #EBA48A; --r3: #F0BCA6; --r4: #F2D0C0; --r5: #F0E0D6;
+  --o1: #F2C984; --o2: #F6DFB5; --alert: #C2502F;
+  --puck: #F4F2E8; --puck-side: #E9E6D8; --stroke: #2A2A26;
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+[hidden] { display: none !important; }
+html, body { margin: 0; background: var(--bg); color: var(--ink); }
+body { font: 16px/1.4 "Inter Tight", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+.app { max-width: 430px; margin: 0 auto; min-height: 100vh; min-height: 100dvh; position: relative; padding: 0 30px 140px; }
+header { display: flex; justify-content: space-between; align-items: flex-start; padding-top: 34px; }
+h1 { font-size: 32px; font-weight: 600; letter-spacing: -0.6px; margin: 0; }
+.chip { display: flex; align-items: center; gap: 7px; font-size: 13px; color: var(--muted); background: none;
+  border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; cursor: pointer; font-family: inherit; margin-top: 6px; }
+.chip i { width: 8px; height: 8px; border-radius: 50%; background: var(--faint); }
+.chip.on i { background: var(--g1); }
+.screen { display: none; } .screen.active { display: block; }
+
+/* ---------- Arm ---------- */
+.stage { margin: 70px -10px 0; }
+.stage svg { width: 100%; height: auto; display: block; }
+.rings ellipse { stroke: var(--stroke); stroke-width: .5; transition: fill .6s ease; }
+.pillbtn { display: block; margin: 44px auto 0; min-width: 160px; padding: 15px 34px; border-radius: 999px;
+  border: 2px solid var(--line); background: var(--card); font: 600 16px "Inter Tight", sans-serif; color: var(--ink); cursor: pointer; }
+.pillbtn:active { transform: scale(.98); }
+.armnote { text-align: center; margin-top: 18px; font-size: 14px; color: var(--muted); min-height: 20px; }
+.armnote.alert { color: var(--alert); font-weight: 600; }
+@keyframes pulse { 0%,100% { opacity: 1 } 50% { opacity: .55 } }
+.alerting .rings ellipse { animation: pulse 1.2s ease-in-out infinite; }
+
+/* ---------- Controls ---------- */
+.scene { margin: 16px -6px 0; }
+.scene svg { width: 100%; height: auto; display: block; }
+.scene .line { fill: none; stroke: var(--stroke); stroke-width: .8; stroke-linecap: round; stroke-linejoin: round; }
+.scene .zone { transition: fill .4s, opacity .4s; }
+.label { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 16px; margin: 22px 0 12px; }
+.seg { display: flex; background: var(--well); border-radius: 999px; padding: 4px; }
+.seg button { flex: 1; border: 0; background: none; padding: 13px 4px; border-radius: 999px; font: 500 14px "Inter Tight", sans-serif;
+  color: var(--ink); cursor: pointer; white-space: nowrap; transition: background .2s; }
+.seg button.on { background: var(--card); font-weight: 600; }
+.vol { position: relative; height: 50px; background: var(--well); border-radius: 999px; overflow: hidden; margin-bottom: 18px; }
+.vol .fill { position: absolute; inset: 0 auto 0 0; background: var(--card); border-radius: 999px; min-width: 50px; }
+.vol .icon { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); pointer-events: none; }
+.vol .num { position: absolute; right: 20px; top: 50%; transform: translateY(-50%); color: #fff; font-weight: 600; font-size: 15px; pointer-events: none; }
+.vol input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; margin: 0; }
+.outline { display: block; width: 100%; padding: 13px; border-radius: 999px; border: 2px solid var(--line); background: var(--card);
+  font: 600 15px "Inter Tight", sans-serif; color: var(--ink); cursor: pointer; }
+.outline:disabled { opacity: .45; cursor: default; }
+.hintline { font-size: 13px; color: var(--muted); margin-top: 12px; min-height: 18px; }
+
+/* ---------- History ---------- */
+.card { background: var(--card); border-radius: 22px; padding: 18px 18px 14px; margin-top: 18px; }
+.card h3 { font-size: 15px; margin: 0 0 10px; font-weight: 600; }
+.chart { width: 100%; height: 150px; display: block; }
+.ranges { display: flex; gap: 6px; }
+.ranges button { border: 0; background: var(--well); border-radius: 999px; padding: 5px 11px; font: 500 12px "Inter Tight", sans-serif; cursor: pointer; color: var(--ink); }
+.ranges button.on { background: var(--ink); color: #fff; }
+.events { list-style: none; margin: 0; padding: 0; }
+.events li { display: flex; gap: 12px; align-items: flex-start; padding: 11px 0; border-top: 1px solid #EFEEE6; font-size: 15px; }
+.events li:first-child { border-top: 0; }
+.events .dot { width: 9px; height: 9px; border-radius: 50%; margin-top: 7px; flex: none; background: var(--faint); }
+.events .dot.in { background: var(--alert); } .events .dot.steps { background: var(--y1); } .events .dot.set { background: var(--g1); }
+.events time { display: block; font-size: 12px; color: var(--muted); }
+.row { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.small { font-size: 12px; color: var(--muted); }
+.textbtn { border: 0; background: none; font: 500 13px "Inter Tight", sans-serif; color: var(--muted); cursor: pointer; padding: 4px 0; text-decoration: underline; }
+
+/* ---------- Tab bar ---------- */
+.tabbar { position: fixed; left: 50%; transform: translateX(-50%); bottom: max(20px, env(safe-area-inset-bottom)); width: min(342px, calc(100% - 60px));
+  background: var(--card); border-radius: 40px; display: flex; padding: 14px 10px; box-shadow: 0 10px 30px rgba(60, 58, 40, .10); z-index: 5; }
+.tabbar button { flex: 1; border: 0; background: none; display: flex; flex-direction: column; align-items: center; gap: 4px;
+  font: 500 15px "Inter Tight", sans-serif; color: var(--faint); cursor: pointer; }
+.tabbar button svg { height: 26px; }
+.tabbar button.on { color: var(--ink); }
+
+/* ---------- Connection sheet ---------- */
+.scrim { position: fixed; inset: 0; background: rgba(30, 30, 20, .25); opacity: 0; pointer-events: none; transition: opacity .2s; z-index: 9; }
+.scrim.open { opacity: 1; pointer-events: auto; }
+.sheet { position: fixed; left: 50%; bottom: 0; transform: translate(-50%, 105%); width: min(430px, 100%); max-height: 85vh; overflow: auto;
+  background: var(--sheet); border-radius: 28px 28px 0 0; padding: 22px 26px 34px; transition: transform .25s ease; z-index: 10; }
+.sheet.open { transform: translate(-50%, 0); }
+.sheet h2 { font-size: 22px; margin: 0 0 4px; font-weight: 600; }
+.sheet .btns { display: grid; gap: 10px; margin: 18px 0; }
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; font-size: 14px; }
+.kv div:nth-child(odd) { color: var(--muted); }
+pre.log { font: 11px/1.45 ui-monospace, Menlo, monospace; background: var(--card); border-radius: 14px; padding: 12px; max-height: 220px;
+  overflow: auto; white-space: pre-wrap; margin: 8px 0 0; }
+.warn { font-size: 13px; color: var(--alert); margin-top: 8px; }
+.netform { display: grid; gap: 10px; background: var(--card); border-radius: 18px; padding: 14px; }
+.netform label { display: grid; gap: 4px; font-size: 12px; color: var(--muted); }
+.netform input { font: 15px "Inter Tight", sans-serif; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--sheet); color: var(--ink); }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ================= ARM ================= -->
+  <section class="screen active" id="s-arm">
+    <header><h1>Arm Device</h1><button class="chip" id="chip1"><i></i><span>Not connected</span></button></header>
+    <div class="stage" id="stage">
+      <svg viewBox="0 0 360 210" aria-hidden="true">
+        <g class="rings" id="rings">
+          <ellipse cx="180" cy="105" rx="172" ry="97"/>
+          <ellipse cx="180" cy="105" rx="158" ry="85"/>
+          <ellipse cx="180" cy="105" rx="144" ry="74"/>
+          <ellipse cx="180" cy="105" rx="128" ry="62"/>
+          <ellipse cx="180" cy="105" rx="112" ry="51"/>
+        </g>
+        <!-- device: rounded-triangle puck, side band then top face -->
+        <g stroke="var(--stroke)" stroke-width=".9" stroke-linejoin="round">
+          <path fill="var(--puck-side)" transform="translate(0,16)" d="M150,42 C125,60 98,108 95,138 C94,152 100,157 113,154 C160,145 220,126 258,108 C273,101 273,89 260,83 C235,68 205,50 180,40 C168,35 158,37 150,42 Z"/>
+          <path fill="var(--puck-side)" stroke="none" d="M95,138 L95,154 L271,110 L271,94 Z"/>
+          <line x1="95" y1="138" x2="95" y2="154"/>
+          <line x1="271.5" y1="94" x2="271.5" y2="110"/>
+          <path fill="var(--puck)" d="M150,42 C125,60 98,108 95,138 C94,152 100,157 113,154 C160,145 220,126 258,108 C273,101 273,89 260,83 C235,68 205,50 180,40 C168,35 158,37 150,42 Z"/>
+          <rect x="121" y="161" width="9" height="4" rx="2" fill="var(--puck)" stroke-width=".7" transform="rotate(-14 125 163)"/>
+        </g>
+      </svg>
+    </div>
+    <button class="pillbtn" id="armBtn">Disarmed</button>
+    <div class="armnote" id="armNote"></div>
+  </section>
+
+  <!-- ================= CONTROLS ================= -->
+  <section class="screen" id="s-controls">
+    <header><h1>Controls</h1><button class="chip" id="chip2"><i></i><span>Not connected</span></button></header>
+    <div class="scene">
+      <svg viewBox="0 0 340 250" aria-hidden="true">
+        <!-- mountains -->
+        <path class="line" d="M60,150 L104,96 L122,110 L150,70 L176,98 L196,84 L230,112 L262,74 L292,104 L312,96 L338,118"/>
+        <path class="line" d="M150,70 L160,100 L150,118 M262,74 L258,100 L270,116 M196,84 L204,108" stroke-width=".5"/>
+        <path class="line" d="M40,170 L80,140 L110,150 L150,132 L210,142 L250,128 L300,140 L340,150" stroke-width=".6"/>
+        <!-- pines -->
+        <path class="line" d="M70,175 L70,6 M98,176 L98,40"/>
+        <path class="line" d="M70,20 L56,34 L70,30 L50,52 L70,46 L46,72 L70,64 L44,94 L70,86 L42,118 L70,108 M70,20 L84,36 L70,32 L90,54 L70,48 L94,74 L70,66 L98,96 L70,88 L100,120 L70,110" stroke-width=".6"/>
+        <path class="line" d="M98,52 L88,66 L98,62 L84,84 L98,78 L82,104 L98,98 L80,126 L98,118 M98,52 L108,68 L98,64 L114,86 L98,80 L116,106 L98,100 L118,128 L98,120" stroke-width=".6"/>
+        <!-- ground rings and detection zone -->
+        <ellipse cx="180" cy="196" rx="150" ry="40" class="line" stroke-width=".6"/>
+        <ellipse cx="180" cy="196" rx="112" ry="30" class="zone" id="zoneFull"/>
+        <ellipse cx="180" cy="196" rx="88" ry="23" class="zone" id="zoneMed"/>
+        <ellipse cx="180" cy="196" rx="62" ry="16" class="zone" id="zoneCons"/>
+        <ellipse cx="180" cy="196" rx="112" ry="30" class="line" stroke-width=".5"/>
+        <ellipse cx="180" cy="196" rx="88" ry="23" class="line" stroke-width=".5"/>
+        <!-- tent -->
+        <path fill="#F6F4EC" class="line" d="M146,200 L176,160 L214,166 L222,198 Z"/>
+        <path class="line" d="M176,160 L182,202 M176,160 L146,200 M162,180 L174,200"/>
+        <path fill="#E8E5D6" class="line" d="M182,202 L176,160 L214,166 L222,198 Z" stroke-width=".7"/>
+        <!-- rocks and grass -->
+        <path class="line" d="M20,232 L34,214 L52,218 L60,236 M290,222 L304,206 L322,212 L330,228 M44,240 L48,226 M50,240 L56,228 M300,240 L304,228 M306,240 L312,226" stroke-width=".6"/>
+      </svg>
+    </div>
+    <div class="label">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 15 A3 3 0 0 0 7 12"/><path d="M4 15 A7 7 0 0 0 11 8"/><path d="M4 15 A11 11 0 0 0 15 4"/></svg>
+      Set detection range
+    </div>
+    <div class="seg" id="seg">
+      <button data-range="cons">Conservative</button><button data-range="med" class="on">Medium</button><button data-range="full">Full Protection</button>
+    </div>
+    <div class="label" style="margin-top:30px">Set alarm volume</div>
+    <div class="vol">
+      <div class="fill" id="volFill"></div>
+      <svg class="icon" width="24" height="24" viewBox="0 0 24 24"><path d="M3 9h4l5-4v14l-5-4H3z" fill="#121212"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13" stroke="#121212" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
+      <span class="num" id="volNum">15</span>
+      <input type="range" id="vol" min="0" max="100" step="1" value="15" aria-label="Alarm volume">
+    </div>
+    <button class="outline" id="previewBtn">Preview sensor volume</button>
+    <div class="hintline" id="ctrlHint"></div>
+  </section>
+
+  <!-- ================= HISTORY ================= -->
+  <section class="screen" id="s-history">
+    <header><h1>History</h1><button class="chip" id="chip3"><i></i><span>Not connected</span></button></header>
+    <div class="card">
+      <div class="row" style="margin-bottom:6px"><h3 style="margin:0">Closest distance</h3>
+        <div class="ranges" id="ranges"><button data-s="300">5m</button><button data-s="1800" class="on">30m</button><button data-s="10800">3h</button></div></div>
+      <svg class="chart" id="chartDist"></svg>
+    </div>
+    <div class="card">
+      <h3>Activity</h3>
+      <ul class="events" id="events"></ul>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <span class="small" id="histNote"></span>
+      <span><button class="textbtn" id="btnCsv">Export CSV</button> · <button class="textbtn" id="btnClear">Clear</button></span>
+    </div>
+  </section>
+</div>
+
+<!-- ================= TAB BAR ================= -->
+<nav class="tabbar">
+  <button data-tab="arm" class="on">
+    <svg viewBox="0 0 40 26"><path d="M3 22 L20 5 L37 22 L31 22 L20 12 L9 22 Z" fill="currentColor"/><path d="M1 24 L5 21 M39 24 L35 21" stroke="currentColor" stroke-width="1.2"/></svg>Arm</button>
+  <button data-tab="controls">
+    <svg viewBox="0 0 28 26"><rect x="2" y="4" width="24" height="7" rx="3.5" fill="currentColor"/><rect x="2" y="15" width="24" height="7" rx="3.5" fill="currentColor"/></svg>Controls</button>
+  <button data-tab="history">
+    <svg viewBox="0 0 28 26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5.5 9 A10 10 0 1 1 4 13"/><path d="M2.5 6.5 L5.5 9.5 L8.5 6.5"/><path d="M14 8 V13.5 L17.5 16"/></svg>History</button>
+</nav>
+
+<!-- ================= CONNECTION SHEET ================= -->
+<div class="scrim" id="scrim"></div>
+<div class="sheet" id="sheet" role="dialog" aria-label="Device connection">
+  <h2>Device</h2>
+  <div class="small" id="sheetStatus">Not connected</div>
+  <div class="btns" id="connectBtns">
+    <button class="outline" id="btnNet">Connect over internet</button>
+    <form id="netForm" class="netform" hidden autocomplete="on">
+      <label>Broker address<input id="nfUrl" placeholder="wss://your-deployment.emqxsl.com:8084/mqtt" required></label>
+      <label>Username<input id="nfUser" autocomplete="username"></label>
+      <label>Password<input id="nfPass" type="password" autocomplete="current-password"></label>
+      <label>Device name<input id="nfDevice" placeholder="phygital-01" required></label>
+      <button class="outline" type="submit">Connect</button>
+    </form>
+    <button class="outline" id="btnUsb">Connect over USB</button>
+    <button class="outline" id="btnDemo">Use demo data</button>
+  </div>
+  <div class="btns" id="disconnectBtns" hidden><button class="outline" id="btnDisconnect">Disconnect</button></div>
+  <div class="warn" id="serialWarn" hidden>USB needs Chrome or Edge, opened from <b>localhost</b> (see README). Demo data works anywhere.</div>
+  <div class="kv" id="deviceInfo"></div>
+  <div class="small" style="margin-top:18px">Device log</div>
+  <pre class="log" id="log"></pre>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mqtt@5.10.1/dist/mqtt.min.js"></script>
+<script src="sources.js"></script>
+<script>
+// ================= SETTINGS MAPPING =================
+// Range presets → alarm radius (perimeter_m, 1.5–11 m on the device).
+const RANGES = { cons: 3, med: 6, full: 10 };
+const rangeFor = m => m <= 4.5 ? 'cons' : m <= 8 ? 'med' : 'full';
+// Volume 0–100 on screen → device volume 0.005–1.0, on a log scale so each step sounds even.
+// 15 ≈ 0.01 (the quiet default), 50 ≈ 0.05, 100 = 0.5.
+const toDevice = s => s <= 0 ? 0 : +(0.005 * Math.pow(200, s / 100)).toFixed(4);
+const toSlider = v => v <= 0 ? 0 : Math.max(1, Math.min(100, Math.round(100 * Math.log(v / 0.005) / Math.log(200))));
+
+// ================= STATE =================
+const MAX_M = 11, HIST_KEY = 'phygital.history.v1', KEEP_S = 3 * 3600;
+let source = null, connected = false, state = {}, info = {}, lastStepsEvent = 0, editingVol = false;
+let range = 'med', armed = false, chartSpan = 1800;
+let hist = loadHistory();
+const $ = id => document.getElementById(id);
+
+function loadHistory() {
+  try { const h = JSON.parse(localStorage.getItem(HIST_KEY)); if (h && h.points && h.events) return h; } catch (e) {}
+  return { points: [], events: [] };
+}
+let saveTimer = null;
+function saveHistory() {
+  if (saveTimer) return;
+  saveTimer = setTimeout(() => {
+    saveTimer = null;
+    const cutoff = Date.now() - KEEP_S * 1000;
+    hist.points = hist.points.filter(p => p.t >= cutoff);
+    hist.events = hist.events.slice(-500);
+    try { localStorage.setItem(HIST_KEY, JSON.stringify(hist)); } catch (e) {}
+  }, 5000);
+}
+
+const handlers = {
+  status(text, isConnected) {
+    connected = isConnected;
+    if (!isConnected) { source = null; state = {}; }
+    for (const id of ['chip1', 'chip2', 'chip3']) {
+      $(id).classList.toggle('on', isConnected);
+      $(id).querySelector('span').textContent = isConnected ? text : 'Not connected';
+    }
+    $('sheetStatus').textContent = text;
+    $('connectBtns').hidden = isConnected; $('disconnectBtns').hidden = !isConnected;
+    renderAll();
+  },
+  telemetry(delta) {
+    const prev = { ...state };
+    Object.assign(state, delta);
+    for (let i = 1; i <= 3; i++)
+      if (!['moving', 'still'].includes(state[`r${i}_state`])) for (const k of ['dist_m', 'speed_mps', 'dir']) delete state[`r${i}_${k}`];
+    if (state.perimeter !== 'inside') delete state.nearest_m;
+    detectEvents(prev, state);
+    const near = [1, 2, 3].map(i => state[`r${i}_dist_m`]).filter(v => v != null);
+    hist.points.push({ t: Date.now(), near: near.length ? Math.min(...near) : null, per: info.active_perimeter_m ?? null, zone: state.perimeter, mic: state.mic_level ?? null });
+    saveHistory();
+    renderArm();
+    if (tab === 'history') renderHistory();
+  },
+  attributes(a) {
+    const wasArmed = info.active_alarm_on;
+    Object.assign(info, a);
+    if (info.active_alarm_on != null) armed = !!info.active_alarm_on;
+    if (info.active_perimeter_m != null) range = rangeFor(info.active_perimeter_m);
+    if (info.active_volume != null && !editingVol) setVolUi(toSlider(info.active_volume));
+    if (wasArmed != null && wasArmed !== info.active_alarm_on) addEvent(info.active_alarm_on ? 'Armed' : 'Disarmed', 'set');
+    renderAll();
+  },
+  log(line) {
+    const el = $('log');
+    el.textContent = (el.textContent + line + '\n').split('\n').slice(-300).join('\n');
+    el.scrollTop = el.scrollHeight;
+  },
+};
+
+function addEvent(text, kind = '') {
+  hist.events.push({ t: Date.now(), text, kind });
+  saveHistory();
+  if (tab === 'history') renderHistory();
+}
+function detectEvents(a, b) {
+  if (a.perimeter !== b.perimeter && b.perimeter === 'inside')
+    addEvent(`Someone entered the perimeter${b.nearest_m ? ' at ' + b.nearest_m.toFixed(1) + ' m' : ''}${armed ? '' : ' (disarmed)'}`, 'in');
+  if (a.perimeter && a.perimeter !== 'clear' && b.perimeter === 'clear') addEvent('Perimeter clear');
+  if (b.footsteps === 1 && a.footsteps !== 1 && Date.now() - lastStepsEvent > 15000) {
+    lastStepsEvent = Date.now();
+    addEvent(`Footsteps heard (${Math.round((b.sound_score ?? 0) * 100)}% sure)`, 'steps');
+  }
+  for (let i = 1; i <= 3; i++) {
+    const s = b[`r${i}_state`];
+    if (a[`r${i}_state`] !== s && (s === 'offline' || s === 'no_data')) addEvent(`Sensor ${i} stopped responding`);
+  }
+}
+
+// ================= RENDER =================
+function renderAll() { renderArm(); renderControls(); renderInfo(); if (tab === 'history') renderHistory(); }
+
+const PALETTES = { off: ['--y5', '--y4', '--y3', '--y2', '--y1'], on: ['--g5', '--g4', '--g3', '--g2', '--g1'], alert: ['--r5', '--r4', '--r3', '--r2', '--r1'] };
+function renderArm() {
+  const inside = state.perimeter === 'inside';
+  const alerting = connected && armed && inside;
+  const pal = PALETTES[alerting ? 'alert' : armed ? 'on' : 'off'];
+  [...$('rings').children].forEach((e, i) => e.style.fill = `var(${pal[i]})`);
+  $('stage').classList.toggle('alerting', alerting);
+  $('armBtn').textContent = armed ? 'Armed' : 'Disarmed';
+  const note = $('armNote');
+  note.classList.toggle('alert', alerting);
+  if (!connected) note.textContent = 'Tap “Not connected” to connect a device';
+  else if (info.device_online === false) note.textContent = 'Device is offline. Check its power and Wi-Fi.';
+  else if (inside) note.textContent = `Someone ${state.nearest_m != null ? state.nearest_m.toFixed(1) + ' m' : ''} away${armed ? '' : ' · alarm off'}`;
+  else if (state.perimeter === 'leaving') note.textContent = 'Moving away…';
+  else if (state.footsteps === 1) note.textContent = 'Footsteps nearby';
+  else {
+    const online = [1, 2, 3].filter(i => info[`radar${i}_online`]).length;
+    note.textContent = info.radar1_online != null ? `${armed ? 'Watching' : 'Idle'} · ${online} of 3 sensors online` : '';
+  }
+}
+
+function renderControls() {
+  document.querySelectorAll('#seg button').forEach(b => b.classList.toggle('on', b.dataset.range === range));
+  const o1 = 'var(--o1)', o2 = 'var(--o2)', none = 'transparent';
+  // the selected range is filled; its outer band is the darker orange
+  $('zoneFull').style.fill = range === 'full' ? o1 : none;
+  $('zoneMed').style.fill = range === 'full' ? o2 : range === 'med' ? o1 : none;
+  $('zoneCons').style.fill = o2;
+  $('previewBtn').disabled = !connected;
+  $('ctrlHint').textContent = connected
+    ? `Alarm radius ${RANGES[range]} m · device volume ${(info.active_volume ?? 0).toFixed(3)}`
+    : 'Connect a device to change these.';
+}
+function setVolUi(s) {
+  $('vol').value = s; $('volNum').textContent = s;
+  $('volFill').style.width = `calc(50px + (100% - 50px) * ${s / 100})`;
+}
+
+function chart(svg, span, points) {
+  const w = svg.clientWidth || 340, h = svg.clientHeight || 150, padL = 28, padB = 18, padT = 6;
+  const now = Date.now(), t0 = now - span * 1000;
+  const pts = points.filter(p => p.t >= t0);
+  const gap = Math.max(5000, span * 1000 / 300);
+  const x = t => padL + (t - t0) / (span * 1000) * (w - padL - 4);
+  const y = v => padT + (1 - Math.min(v, MAX_M) / MAX_M) * (h - padT - padB);
+  let s = '';
+  for (const v of [0, 5, 10]) s += `<line x1="${padL}" x2="${w - 4}" y1="${y(v)}" y2="${y(v)}" stroke="#EFEEE6"/><text x="${padL - 6}" y="${y(v) + 4}" text-anchor="end" font-size="10" fill="#8E8C80">${v}m</text>`;
+  s += `<text x="${padL}" y="${h - 3}" font-size="10" fill="#8E8C80">${new Date(t0).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</text><text x="${w - 4}" y="${h - 3}" font-size="10" text-anchor="end" fill="#8E8C80">now</text>`;
+  const path = (get, attrs) => {
+    let d = '', pen = false, lastT = 0;
+    for (const p of pts) {
+      const v = get(p);
+      if (v == null || p.t - lastT > gap) pen = false;
+      if (v != null) { d += `${pen ? 'L' : 'M'}${x(p.t).toFixed(1)},${y(v).toFixed(1)}`; pen = true; }
+      lastT = p.t;
+    }
+    return d ? `<path d="${d}" fill="none" ${attrs}/>` : '';
+  };
+  s += path(p => p.per, 'stroke="#F2C984" stroke-width="2" stroke-dasharray="4 4"');
+  s += path(p => p.near, 'stroke="#121212" stroke-width="1.8" stroke-linejoin="round"');
+  if (!pts.some(p => p.near != null)) s += `<text x="${(w + padL) / 2}" y="${h / 2}" text-anchor="middle" font-size="13" fill="#8E8C80">Nobody detected in this time</text>`;
+  svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+  svg.innerHTML = s;
+}
+// History comes from the recorder when connected over the internet (kept for weeks),
+// otherwise from this browser's own copy (last 3 h).
+let remote = null, remoteAt = 0, remoteSpan = 0;
+const useRecorder = () => source instanceof MqttSource && info.recorder_online;
+async function fetchRemote(force) {
+  if (!useRecorder() || (!force && Date.now() - remoteAt < 20000 && remoteSpan === chartSpan)) return;
+  remoteAt = Date.now(); remoteSpan = chartSpan;
+  try {
+    const since = Date.now() - chartSpan * 1000;
+    const [p, e] = await Promise.all([source.history('points', since), source.history('events', Date.now() - 7 * 86400e3)]);
+    remote = { points: p.map(r => ({ t: r.t, near: r.nearest, per: r.perimeter })), events: e.reverse() };
+  } catch (err) { remote = null; }
+  if (tab === 'history') renderHistory();
+}
+function renderHistory() {
+  if (useRecorder()) fetchRemote();
+  const r = useRecorder() && remote;
+  chart($('chartDist'), chartSpan, r ? remote.points : hist.points);
+  renderEvents(r ? remote.events : hist.events, r ? 'From the recorder · last 7 days' : 'Saved in this browser · last 3 h');
+}
+function renderEvents(events, note) {
+  const ul = $('events'); ul.textContent = '';
+  const list = events.slice(-150).reverse();
+  for (const e of list) {
+    const li = document.createElement('li'), dot = document.createElement('span'), body = document.createElement('div'), tm = document.createElement('time');
+    dot.className = 'dot ' + (e.kind || '');
+    const d = new Date(e.t);
+    tm.textContent = (d.toDateString() === new Date().toDateString() ? '' : d.toLocaleDateString() + ' ') + d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit' });
+    body.append(document.createTextNode(e.text), tm);
+    li.append(dot, body); ul.append(li);
+  }
+  if (!list.length) { const li = document.createElement('li'); li.className = 'small'; li.textContent = 'Nothing yet.'; ul.append(li); }
+  $('histNote').textContent = note;
+}
+function renderInfo() {
+  const rows = [];
+  if (info.firmware) rows.push(['Firmware', info.firmware]);
+  if (info.mac_address) rows.push(['MAC address', info.mac_address]);
+  if (info.wifi_rssi_dbm) rows.push(['Wi-Fi signal', info.wifi_rssi_dbm + ' dBm']);
+  for (let i = 1; i <= 3; i++) if (info[`radar${i}_online`] != null) rows.push([`Sensor ${i}`, info[`radar${i}_online`] ? 'online' : 'offline']);
+  for (const [k, n] of [['mic_ok', 'Microphone'], ['speaker_ok', 'Speaker'], ['sound_ai_ok', 'Footstep AI']]) if (info[k] != null) rows.push([n, info[k] ? 'ok' : 'failed']);
+  if (info.active_perimeter_m != null) rows.push(['LED', info.active_led_on ? 'on' : 'off']);
+  const el = $('deviceInfo'); el.textContent = '';
+  for (const [k, v] of rows) { const a = document.createElement('div'), b = document.createElement('div'); a.textContent = k; b.textContent = v; el.append(a, b); }
+}
+
+function exportCsv() {
+  const rows = [['time', 'perimeter', 'alarm_radius_m', 'nearest_m', 'mic_level']];
+  for (const p of hist.points) rows.push([new Date(p.t).toISOString(), p.zone ?? '', p.per ?? '', p.near ?? '', p.mic ?? '']);
+  rows.push([]); rows.push(['time', 'event']);
+  for (const e of hist.events) rows.push([new Date(e.t).toISOString(), '"' + e.text.replace(/"/g, '""') + '"']);
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([rows.map(r => r.join(',')).join('\n')], { type: 'text/csv' }));
+  a.download = `phygital-history-${new Date().toISOString().slice(0, 16).replace(':', '')}.csv`;
+  a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+// ================= ACTIONS =================
+let tab = 'arm';
+document.querySelectorAll('.tabbar button').forEach(b => b.onclick = () => {
+  tab = b.dataset.tab;
+  document.querySelectorAll('.tabbar button').forEach(x => x.classList.toggle('on', x === b));
+  document.querySelectorAll('.screen').forEach(s => s.classList.toggle('active', s.id === 's-' + tab));
+  window.scrollTo(0, 0);
+  if (tab === 'history') renderHistory();
+});
+
+const openSheet = open => { $('sheet').classList.toggle('open', open); $('scrim').classList.toggle('open', open); };
+for (const id of ['chip1', 'chip2', 'chip3']) $(id).onclick = () => openSheet(true);
+$('scrim').onclick = () => openSheet(false);
+
+async function start(src) {
+  if (source) await source.disconnect();
+  state = {}; info = {}; source = src;
+  try { await src.connect(handlers); openSheet(false); }
+  catch (e) {
+    source = null;
+    handlers.status(e.name === 'NotFoundError' ? 'Not connected' : /open/i.test(e.message) ? 'Port busy: quit Arduino IDE / Serial Monitor first' : e.message, false);
+  }
+}
+$('btnNet').onclick = () => {
+  const f = $('netForm'), b = loadBroker();
+  f.hidden = !f.hidden;
+  $('nfUrl').value = b.url; $('nfUser').value = b.username; $('nfPass').value = b.password; $('nfDevice').value = b.device;
+};
+$('netForm').onsubmit = e => {
+  e.preventDefault();
+  const b = { ...loadBroker(), auto: true, url: $('nfUrl').value.trim(), username: $('nfUser').value.trim(), password: $('nfPass').value, device: $('nfDevice').value.trim() };
+  saveBroker(b);
+  $('sheetStatus').textContent = 'Connecting…';
+  start(new MqttSource(b));
+};
+$('btnUsb').onclick = () => start(new UsbSource());
+$('btnDemo').onclick = () => start(new DemoSource());
+$('btnDisconnect').onclick = async () => {
+  if (source instanceof MqttSource) saveBroker({ ...loadBroker(), auto: false });
+  const s = source; source = null; await s?.disconnect(); handlers.status('Not connected', false);
+};
+
+$('armBtn').onclick = () => {
+  if (!connected) return openSheet(true);
+  armed = !armed; renderArm();                                 // optimistic; the device confirms via active_alarm_on
+  source.sendConfig({ alarm_on: armed });
+};
+document.querySelectorAll('#seg button').forEach(b => b.onclick = () => {
+  if (!connected) return openSheet(true);
+  range = b.dataset.range; renderControls();
+  source.sendConfig({ perimeter_m: RANGES[range] });
+  addEvent(`Detection range set to ${b.textContent} (${RANGES[range]} m)`, 'set');
+});
+$('vol').addEventListener('input', e => { editingVol = true; setVolUi(+e.target.value); });
+$('vol').addEventListener('change', e => {
+  editingVol = false;
+  if (!connected) { setVolUi(toSlider(info.active_volume ?? 0.01)); return openSheet(true); }
+  source.sendConfig({ volume: toDevice(+e.target.value) });
+});
+$('previewBtn').onclick = () => source?.preview();
+document.querySelectorAll('#ranges button').forEach(b => b.onclick = () => {
+  chartSpan = +b.dataset.s; remoteAt = 0;
+  document.querySelectorAll('#ranges button').forEach(x => x.classList.toggle('on', x === b));
+  renderHistory();
+});
+$('btnCsv').onclick = exportCsv;
+$('btnClear').onclick = () => { if (confirm('Clear all saved history in this browser?')) { hist = { points: [], events: [] }; try { localStorage.removeItem(HIST_KEY); } catch (e) {} renderHistory(); } };
+window.addEventListener('resize', () => { if (tab === 'history') renderHistory(); });
+setInterval(() => { if (tab === 'history' && connected) renderHistory(); }, 5000);
+navigator.serial?.addEventListener('disconnect', () => { if (source instanceof UsbSource) { source.disconnect(); handlers.status('Board unplugged', false); } });
+if (!('serial' in navigator) || !isSecureContext) $('serialWarn').hidden = false;
+
+setVolUi(toSlider(0.01));
+renderAll();
+if (loadBroker().auto && loadBroker().url) start(new MqttSource(loadBroker()));   // reconnect to the last internet device
+</script>
+</body>
+</html>

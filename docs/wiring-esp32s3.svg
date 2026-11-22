@@ -1,0 +1,139 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="640" viewBox="0 0 680 640" role="img">
+<title>ESP32-S3 wiring for the phygital sensor hub</title>
+<desc>ESP32-S3-DevKitC-1 with three radars and mic wired to the left header, and the amp and RGB LED to the right header. Radars and amp use 5V, mic uses 3V3, and the cable goes in the USB port.</desc>
+<style>
+  text { font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; }
+  .t  { font-size: 14px; fill: #2C2C2A; }
+  .th { font-size: 14px; font-weight: 500; fill: #2C2C2A; }
+  .ts { font-size: 12px; fill: #5F5E5A; }
+  .teal rect   { fill: #E1F5EE; stroke: #0F6E56; } .teal .th   { fill: #085041; } .teal .ts   { fill: #0F6E56; }
+  .purple rect { fill: #EEEDFE; stroke: #534AB7; } .purple .th { fill: #3C3489; } .purple .ts { fill: #534AB7; }
+  .coral rect  { fill: #FAECE7; stroke: #993C1D; } .coral .th  { fill: #712B13; } .coral .ts  { fill: #993C1D; }
+  .gray rect   { fill: #F1EFE8; stroke: #5F5E5A; } .gray .th   { fill: #444441; } .gray .ts   { fill: #5F5E5A; }
+</style>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="#5F5E5A" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+
+<rect x="0" y="0" width="680" height="640" fill="#FFFFFF"/>
+<rect x="250" y="40" width="180" height="500" rx="8" fill="#FAF9F5" stroke="#888780" stroke-width="0.5"/>
+<g class="gray">
+<rect x="310" y="250" width="60" height="80" rx="4" stroke-width="0.5"/>
+<text class="th" x="340" y="280" text-anchor="middle" dominant-baseline="central">S3</text>
+<text class="ts" x="340" y="300" text-anchor="middle" dominant-baseline="central">N8R2</text>
+</g>
+
+<g stroke-width="1.2" fill="none">
+<line x1="190" y1="88" x2="266" y2="140" stroke="#1D9E75"/>
+<line x1="190" y1="102" x2="266" y2="160" stroke="#1D9E75"/>
+<line x1="190" y1="153" x2="266" y2="180" stroke="#1D9E75"/>
+<line x1="190" y1="167" x2="266" y2="200" stroke="#1D9E75"/>
+<line x1="190" y1="218" x2="266" y2="220" stroke="#1D9E75"/>
+<line x1="190" y1="232" x2="266" y2="240" stroke="#1D9E75"/>
+<line x1="190" y1="345" x2="266" y2="360" stroke="#7F77DD"/>
+<line x1="190" y1="360" x2="266" y2="380" stroke="#7F77DD"/>
+<line x1="190" y1="375" x2="266" y2="400" stroke="#7F77DD"/>
+<line x1="414" y1="240" x2="490" y2="395" stroke="#7F77DD"/>
+<line x1="414" y1="400" x2="490" y2="410" stroke="#7F77DD"/>
+<line x1="414" y1="420" x2="490" y2="425" stroke="#7F77DD"/>
+<line x1="190" y1="500" x2="266" y2="480" stroke="#E24B4A"/>
+<line x1="190" y1="514" x2="266" y2="500" stroke="#888780"/>
+<line x1="414" y1="140" x2="490" y2="138" stroke="#D85A30"/>
+<line x1="414" y1="180" x2="490" y2="150" stroke="#D85A30"/>
+<line x1="414" y1="200" x2="490" y2="162" stroke="#D85A30"/>
+</g>
+
+<g class="teal">
+<rect x="30" y="70" width="160" height="50" rx="6" stroke-width="0.5"/>
+<text class="th" x="110" y="87" text-anchor="middle" dominant-baseline="central">Radar 1</text>
+<text class="ts" x="110" y="104" text-anchor="middle" dominant-baseline="central">TX→4 · RX→5</text>
+</g>
+<g class="teal">
+<rect x="30" y="135" width="160" height="50" rx="6" stroke-width="0.5"/>
+<text class="th" x="110" y="152" text-anchor="middle" dominant-baseline="central">Radar 2</text>
+<text class="ts" x="110" y="169" text-anchor="middle" dominant-baseline="central">TX→6 · RX→7</text>
+</g>
+<g class="teal">
+<rect x="30" y="200" width="160" height="50" rx="6" stroke-width="0.5"/>
+<text class="th" x="110" y="217" text-anchor="middle" dominant-baseline="central">Radar 3</text>
+<text class="ts" x="110" y="234" text-anchor="middle" dominant-baseline="central">TX→15 · RX→16</text>
+</g>
+<g class="purple">
+<rect x="30" y="330" width="160" height="60" rx="6" stroke-width="0.5"/>
+<text class="th" x="110" y="348" text-anchor="middle" dominant-baseline="central">Mic (INMP441)</text>
+<text class="ts" x="110" y="366" text-anchor="middle" dominant-baseline="central">SCK 9 · WS 10 · SD 11</text>
+<text class="ts" x="110" y="380" text-anchor="middle" dominant-baseline="central">VDD 3V3 · L/R GND</text>
+</g>
+<g class="purple">
+<rect x="490" y="380" width="160" height="60" rx="6" stroke-width="0.5"/>
+<text class="th" x="570" y="398" text-anchor="middle" dominant-baseline="central">Amp (MAX98357A)</text>
+<text class="ts" x="570" y="416" text-anchor="middle" dominant-baseline="central">LRC 39 · BCLK 47</text>
+<text class="ts" x="570" y="430" text-anchor="middle" dominant-baseline="central">DIN 21 · SD 5V</text>
+</g>
+<g class="gray">
+<rect x="30" y="482" width="160" height="50" rx="6" stroke-width="0.5"/>
+<text class="th" x="110" y="499" text-anchor="middle" dominant-baseline="central">Power rails</text>
+<text class="ts" x="110" y="516" text-anchor="middle" dominant-baseline="central">5V: radars + amp</text>
+</g>
+<g class="coral">
+<rect x="490" y="120" width="160" height="60" rx="6" stroke-width="0.5"/>
+<text class="th" x="570" y="138" text-anchor="middle" dominant-baseline="central">RGB LED</text>
+<text class="ts" x="570" y="156" text-anchor="middle" dominant-baseline="central">R 1 · G 42 · B 41</text>
+<text class="ts" x="570" y="170" text-anchor="middle" dominant-baseline="central">220 Ω each, common GND</text>
+</g>
+
+<g>
+<circle cx="270" cy="80" r="4" fill="#888780"/><text class="ts" x="282" y="80" dominant-baseline="central">3V3</text>
+<circle cx="270" cy="100" r="4" fill="none" stroke="#888780" stroke-width="0.8"/><text class="ts" x="282" y="100" dominant-baseline="central">3V3</text>
+<circle cx="270" cy="120" r="4" fill="none" stroke="#888780" stroke-width="0.8"/><text class="ts" x="282" y="120" dominant-baseline="central">RST</text>
+<circle cx="270" cy="140" r="4" fill="#1D9E75"/><text class="ts" x="282" y="140" dominant-baseline="central">4</text>
+<circle cx="270" cy="160" r="4" fill="#1D9E75"/><text class="ts" x="282" y="160" dominant-baseline="central">5</text>
+<circle cx="270" cy="180" r="4" fill="#1D9E75"/><text class="ts" x="282" y="180" dominant-baseline="central">6</text>
+<circle cx="270" cy="200" r="4" fill="#1D9E75"/><text class="ts" x="282" y="200" dominant-baseline="central">7</text>
+<circle cx="270" cy="220" r="4" fill="#1D9E75"/><text class="ts" x="282" y="220" dominant-baseline="central">15</text>
+<circle cx="270" cy="240" r="4" fill="#1D9E75"/><text class="ts" x="282" y="240" dominant-baseline="central">16</text>
+<circle cx="270" cy="260" r="4" fill="none" stroke="#888780" stroke-width="0.8"/><text class="ts" x="282" y="260" dominant-baseline="central">17</text>
+<circle cx="270" cy="280" r="4" fill="none" stroke="#888780" stroke-width="0.8"/><text class="ts" x="282" y="280" dominant-baseline="central">18</text>
+<circle cx="270" cy="300" r="4" fill="none" stroke="#888780" stroke-width="0.8"/><text class="ts" x="282" y="300" dominant-baseline="central">8</text>
+<circle cx="270" cy="320" r="4" fill="none" stroke="#888780" stroke-width="0.8"/><text class="ts" x="282" y="320" dominant-baseline="central">3</text>
+<circle cx="270" cy="340" r="4" fill="none" stroke="#888780" stroke-width="0.8"/><text class="ts" x="282" y="340" dominant-baseline="central">46</text>
+<circle cx="270" cy="360" r="4" fill="#7F77DD"/><text class="ts" x="282" y="360" dominant-baseline="central">9</text>
+<circle cx="270" cy="380" r="4" fill="#7F77DD"/><text class="ts" x="282" y="380" dominant-baseline="central">10</text>
+<circle cx="270" cy="400" r="4" fill="#7F77DD"/><text class="ts" x="282" y="400" dominant-baseline="central">11</text>
+<circle cx="270" cy="420" r="4" fill="none" stroke="#888780" stroke-width="0.8"/><text class="ts" x="282" y="420" dominant-baseline="central">12</text>
+<circle cx="270" cy="440" r="4" fill="none" stroke="#888780" stroke-width="0.8"/><text class="ts" x="282" y="440" dominant-baseline="central">13</text>
+<circle cx="270" cy="460" r="4" fill="none" stroke="#888780" stroke-width="0.8"/><text class="ts" x="282" y="460" dominant-baseline="central">14</text>
+<circle cx="270" cy="480" r="4" fill="#E24B4A"/><text class="ts" x="282" y="480" dominant-baseline="central">5V</text>
+<circle cx="270" cy="500" r="4" fill="#888780"/><text class="ts" x="282" y="500" dominant-baseline="central">GND</text>
+</g>
+
+<g>
+<circle cx="410" cy="80" r="4" fill="#888780"/><text class="ts" x="398" y="80" text-anchor="end" dominant-baseline="central">GND</text>
+<circle cx="410" cy="100" r="4" fill="none" stroke="#888780" stroke-width="0.8"/><text class="ts" x="398" y="100" text-anchor="end" dominant-baseline="central">TX</text>
+<circle cx="410" cy="120" r="4" fill="none" stroke="#888780" stroke-width="0.8"/><text class="ts" x="398" y="120" text-anchor="end" dominant-baseline="central">RX</text>
+<circle cx="410" cy="140" r="4" fill="#D85A30"/><text class="ts" x="398" y="140" text-anchor="end" dominant-baseline="central">1</text>
+<circle cx="410" cy="160" r="4" fill="none" stroke="#888780" stroke-width="0.8"/><text class="ts" x="398" y="160" text-anchor="end" dominant-baseline="central">2</text>
+<circle cx="410" cy="180" r="4" fill="#D85A30"/><text class="ts" x="398" y="180" text-anchor="end" dominant-baseline="central">42</text>
+<circle cx="410" cy="200" r="4" fill="#D85A30"/><text class="ts" x="398" y="200" text-anchor="end" dominant-baseline="central">41</text>
+<circle cx="410" cy="220" r="4" fill="none" stroke="#888780" stroke-width="0.8"/><text class="ts" x="398" y="220" text-anchor="end" dominant-baseline="central">40</text>
+<circle cx="410" cy="240" r="4" fill="#7F77DD"/><text class="ts" x="398" y="240" text-anchor="end" dominant-baseline="central">39</text>
+<circle cx="410" cy="260" r="4" fill="none" stroke="#888780" stroke-width="0.8"/><text class="ts" x="398" y="260" text-anchor="end" dominant-baseline="central">38</text>
+<circle cx="410" cy="280" r="4" fill="none" stroke="#888780" stroke-width="0.8"/><text class="ts" x="398" y="280" text-anchor="end" dominant-baseline="central">37</text>
+<circle cx="410" cy="300" r="4" fill="none" stroke="#888780" stroke-width="0.8"/><text class="ts" x="398" y="300" text-anchor="end" dominant-baseline="central">36</text>
+<circle cx="410" cy="320" r="4" fill="none" stroke="#888780" stroke-width="0.8"/><text class="ts" x="398" y="320" text-anchor="end" dominant-baseline="central">35</text>
+<circle cx="410" cy="340" r="4" fill="none" stroke="#888780" stroke-width="0.8"/><text class="ts" x="398" y="340" text-anchor="end" dominant-baseline="central">0</text>
+<circle cx="410" cy="360" r="4" fill="none" stroke="#888780" stroke-width="0.8"/><text class="ts" x="398" y="360" text-anchor="end" dominant-baseline="central">45</text>
+<circle cx="410" cy="380" r="4" fill="none" stroke="#888780" stroke-width="0.8"/><text class="ts" x="398" y="380" text-anchor="end" dominant-baseline="central">48</text>
+<circle cx="410" cy="400" r="4" fill="#7F77DD"/><text class="ts" x="398" y="400" text-anchor="end" dominant-baseline="central">47</text>
+<circle cx="410" cy="420" r="4" fill="#7F77DD"/><text class="ts" x="398" y="420" text-anchor="end" dominant-baseline="central">21</text>
+<circle cx="410" cy="440" r="4" fill="none" stroke="#888780" stroke-width="0.8"/><text class="ts" x="398" y="440" text-anchor="end" dominant-baseline="central">20</text>
+<circle cx="410" cy="460" r="4" fill="none" stroke="#888780" stroke-width="0.8"/><text class="ts" x="398" y="460" text-anchor="end" dominant-baseline="central">19</text>
+<circle cx="410" cy="480" r="4" fill="#888780"/><text class="ts" x="398" y="480" text-anchor="end" dominant-baseline="central">GND</text>
+<circle cx="410" cy="500" r="4" fill="#888780"/><text class="ts" x="398" y="500" text-anchor="end" dominant-baseline="central">GND</text>
+</g>
+
+<g class="gray"><rect x="285" y="526" width="44" height="26" rx="4" stroke-width="0.5"/></g>
+<g class="teal"><rect x="351" y="526" width="44" height="26" rx="4" stroke-width="1"/></g>
+<text class="ts" x="307" y="572" text-anchor="middle" dominant-baseline="central">UART</text>
+<text class="th" x="373" y="572" text-anchor="middle" dominant-baseline="central">USB</text>
+<line x1="373" y1="612" x2="373" y2="588" stroke="#5F5E5A" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text class="ts" x="390" y="612" dominant-baseline="central">Cable goes here (check the silkscreen)</text>
+</svg>

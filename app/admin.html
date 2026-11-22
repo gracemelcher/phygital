@@ -1,0 +1,399 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Phygital Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #EBEADF; --ink: #121212; --muted: #7E7C70; --line: #DDDBCD; --card: #FFFFFF; --well: #F3F2EA;
+  --ok: #5F7F3A; --ok-soft: #E3EBD3; --bad: #C2502F; --bad-soft: #F6DED5; --warn: #B07A12;
+  --c1: #2F6FDE; --c2: #C98A12; --c3: #9B51E0; --per: #E58C6E;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.45 "Inter Tight", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+header { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: center; padding: 16px 24px; background: var(--card); border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 3; }
+h1 { font-size: 20px; font-weight: 600; margin: 0 12px 0 0; letter-spacing: -.3px; }
+header .grow { flex: 1; }
+select, input, button { font: inherit; color: var(--ink); }
+select, input[type=number], input[type=text], input[type=password] { border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px; background: var(--card); }
+button { border: 1px solid var(--line); background: var(--card); border-radius: 999px; padding: 7px 14px; cursor: pointer; font-weight: 500; }
+button.primary { background: var(--ink); color: #fff; border-color: var(--ink); }
+button:disabled { opacity: .45; cursor: default; }
+.pill { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; padding: 4px 10px; border-radius: 999px; background: var(--well); color: var(--muted); }
+.pill i { width: 8px; height: 8px; border-radius: 50%; background: #C9C7BA; }
+.pill.ok { background: var(--ok-soft); color: var(--ok); } .pill.ok i { background: var(--ok); }
+.pill.bad { background: var(--bad-soft); color: var(--bad); } .pill.bad i { background: var(--bad); }
+main { padding: 20px 24px 60px; display: grid; gap: 16px; grid-template-columns: repeat(12, 1fr); max-width: 1500px; margin: 0 auto; }
+.card { background: var(--card); border-radius: 16px; padding: 16px 18px; min-width: 0; }
+.card h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .6px; color: var(--muted); margin: 0 0 12px; font-weight: 600; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.s3 { grid-column: span 3; } .s4 { grid-column: span 4; } .s5 { grid-column: span 5; } .s6 { grid-column: span 6; } .s7 { grid-column: span 7; } .s8 { grid-column: span 8; } .s12 { grid-column: span 12; }
+@media (max-width: 1100px) { .s3, .s4, .s5, .s6, .s7, .s8 { grid-column: span 12; } }
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 5px 16px; }
+.kv div:nth-child(odd) { color: var(--muted); }
+.good { color: var(--ok); font-weight: 500; } .badv { color: var(--bad); font-weight: 600; }
+table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--well); vertical-align: top; }
+th { font-size: 12px; color: var(--muted); font-weight: 500; }
+td.age, td.when { color: var(--muted); font-size: 12px; white-space: nowrap; }
+td.flash { animation: flash 1s ease-out; }
+@keyframes flash { from { background: #FFF3C4; } to { background: transparent; } }
+.readings { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; }
+.group { background: var(--well); border-radius: 12px; padding: 10px 12px; }
+.group h3 { margin: 0 0 6px; font-size: 13px; font-weight: 600; }
+.group table td { border: 0; padding: 2px 4px; }
+.group table td:first-child { color: var(--muted); }
+.chart { width: 100%; height: 190px; display: block; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px; color: var(--muted); margin-top: 4px; }
+.legend i { display: inline-block; width: 14px; height: 3px; margin-right: 5px; vertical-align: middle; }
+.ranges { display: flex; gap: 4px; }
+.ranges button { padding: 3px 10px; font-size: 12px; background: var(--well); border: 0; }
+.ranges button.on { background: var(--ink); color: #fff; }
+.form { display: grid; gap: 12px; }
+.form label { display: grid; gap: 4px; font-size: 12px; color: var(--muted); }
+.form .row { display: flex; gap: 10px; align-items: center; }
+.checks { display: flex; gap: 18px; }
+.checks label { display: flex; gap: 6px; align-items: center; color: var(--ink); font-size: 14px; }
+.log { max-height: 340px; overflow: auto; }
+.log td { font: 12px/1.4 ui-monospace, Menlo, monospace; word-break: break-all; }
+.events td:first-child { white-space: nowrap; color: var(--muted); width: 1%; }
+.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 8px; background: #C9C7BA; }
+.dot.in { background: var(--bad); } .dot.steps { background: #F2C984; } .dot.set { background: var(--ok); } .dot.warn { background: var(--warn); }
+.note { font-size: 12px; color: var(--muted); }
+.connect { position: fixed; inset: 0; background: rgba(30, 30, 20, .3); display: grid; place-items: center; z-index: 10; }
+.connect .card { width: min(440px, calc(100% - 32px)); }
+.err { color: var(--bad); font-size: 13px; min-height: 18px; }
+.empty { color: var(--muted); padding: 10px 0; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Phygital Admin</h1>
+  <label class="note">Device <select id="devSel"><option>—</option></select></label>
+  <span class="pill" id="devPill"><i></i><span>No device</span></span>
+  <span class="pill" id="recPill"><i></i><span>Recorder</span></span>
+  <span class="grow"></span>
+  <span class="note" id="brokerNote"></span>
+  <button id="btnConnect">Broker…</button>
+  <a href="index.html" class="note">Phone app →</a>
+</header>
+
+<main>
+  <section class="card s4">
+    <h2>Device health</h2>
+    <div class="kv" id="health"><div>Status</div><div>Not connected</div></div>
+  </section>
+
+  <section class="card s4">
+    <h2>Settings</h2>
+    <form class="form" id="setForm">
+      <label>Alarm radius (m, 1.5–11)<input type="number" id="sPer" min="1.5" max="11" step="0.1" required></label>
+      <label>Volume (0–1; 0.01 is quiet, doubling ≈ +6 dB)<input type="number" id="sVol" min="0" max="1" step="0.001" required></label>
+      <div class="checks">
+        <label><input type="checkbox" id="sAlarm"> Armed (speaker on)</label>
+        <label><input type="checkbox" id="sLed"> LED on</label>
+      </div>
+      <div class="row">
+        <button class="primary" type="submit" id="btnSave" disabled>Save to device</button>
+        <button type="button" id="btnPreview" disabled>Preview beep</button>
+        <span class="note" id="setNote"></span>
+      </div>
+    </form>
+  </section>
+
+  <section class="card s4">
+    <h2>Right now</h2>
+    <div class="kv" id="summary"></div>
+  </section>
+
+  <section class="card s12">
+    <h2>All readings <span class="note" id="readAge"></span></h2>
+    <div class="readings" id="readings"><div class="empty">No readings yet.</div></div>
+  </section>
+
+  <section class="card s12">
+    <h2>Charts
+      <span class="ranges" id="ranges">
+        <button data-s="900">15m</button><button data-s="3600" class="on">1h</button><button data-s="21600">6h</button><button data-s="86400">24h</button><button data-s="604800">7d</button>
+      </span>
+    </h2>
+    <div class="note">Distance per radar (m)</div>
+    <svg class="chart" id="chDist"></svg>
+    <div class="legend"><span><i style="background:var(--c1)"></i>Radar 1</span><span><i style="background:var(--c2)"></i>Radar 2</span><span><i style="background:var(--c3)"></i>Radar 3</span><span><i style="background:var(--per)"></i>Alarm radius</span></div>
+    <div class="note" style="margin-top:14px">Microphone level</div>
+    <svg class="chart" id="chMic" style="height:120px"></svg>
+    <div class="note" style="margin-top:14px">Footstep confidence (dots mark footsteps)</div>
+    <svg class="chart" id="chSound" style="height:110px"></svg>
+  </section>
+
+  <section class="card s5">
+    <h2>Events <span class="note">last 7 days</span></h2>
+    <div class="log"><table class="events"><tbody id="events"></tbody></table></div>
+  </section>
+
+  <section class="card s7">
+    <h2>Messages <button id="btnStored" style="padding:3px 10px;font-size:12px">Load stored</button></h2>
+    <div class="log"><table><thead><tr><th>Time</th><th>Topic</th><th>Payload</th></tr></thead><tbody id="msgs"></tbody></table></div>
+  </section>
+</main>
+
+<div class="connect" id="connect" hidden>
+  <form class="card form" id="brokerForm">
+    <h2>Connect to broker</h2>
+    <label>Broker address<input type="text" id="bUrl" placeholder="wss://your-deployment.emqxsl.com:8084/mqtt" required></label>
+    <label>Username<input type="text" id="bUser" autocomplete="username"></label>
+    <label>Password<input type="password" id="bPass" autocomplete="current-password"></label>
+    <label>Topic root<input type="text" id="bRoot" value="phygital"></label>
+    <div class="err" id="bErr"></div>
+    <div class="row"><button class="primary" type="submit">Connect</button><button type="button" id="bCancel">Cancel</button></div>
+    <div class="note">Saved in this browser only. Use the app's own broker login, not the device's.</div>
+  </form>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mqtt@5.10.1/dist/mqtt.min.js"></script>
+<script src="sources.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const MAX_M = 11;
+let src = null, info = {}, state = {}, updated = {}, live = [], stored = null, events = [], span = 3600;
+let devices = new Map();
+
+// ---------------- connection ----------------
+function showConnect(msg = '') {
+  const b = loadBroker();
+  $('bUrl').value = b.url; $('bUser').value = b.username; $('bPass').value = b.password; $('bRoot').value = b.root || 'phygital';
+  $('bErr').textContent = msg; $('connect').hidden = false;
+}
+$('btnConnect').onclick = () => showConnect();
+$('bCancel').onclick = () => { $('connect').hidden = true; };
+$('brokerForm').onsubmit = async e => {
+  e.preventDefault();
+  const b = { ...loadBroker(), url: $('bUrl').value.trim(), username: $('bUser').value.trim(), password: $('bPass').value, root: $('bRoot').value.trim() || 'phygital' };
+  saveBroker(b);
+  await connect(b);
+};
+
+const handlers = {
+  telemetry(delta) {
+    const t = Date.now();
+    for (const k in delta) updated[k] = t;
+    Object.assign(state, delta);
+    for (let i = 1; i <= 3; i++)
+      if (!['moving', 'still'].includes(state[`r${i}_state`])) for (const k of ['dist_m', 'speed_mps', 'dir']) delete state[`r${i}_${k}`];
+    if (state.perimeter !== 'inside') delete state.nearest_m;
+    const near = [1, 2, 3].map(i => state[`r${i}_dist_m`]).filter(v => v != null);
+    live.push({ t, r1: state.r1_dist_m ?? null, r2: state.r2_dist_m ?? null, r3: state.r3_dist_m ?? null,
+      nearest: near.length ? Math.min(...near) : null, mic: state.mic_level ?? null, sound_score: state.sound_score == null ? null : state.sound_label === 'human_footsteps' ? state.sound_score : 1 - state.sound_score,
+      footsteps: state.footsteps ?? 0, perimeter: info.active_perimeter_m ?? null });
+    if (live.length > 5000) live.splice(0, live.length - 5000);
+    renderReadings(delta); renderSummary();
+  },
+  attributes(a) {
+    const recorderCameUp = a.recorder_online && !info.recorder_online;
+    Object.assign(info, a); renderHealth(); renderSettings(); renderSummary();
+    if (recorderCameUp) loadHistory();
+  },
+  status(text) { renderHealth(); },
+  log() {},
+  raw(topic, text) { addMsg(Date.now(), topic, text); },
+  devices(map) { devices = map; renderDevices(); },
+};
+
+async function connect(b) {
+  src?.disconnect();
+  info = {}; state = {}; updated = {}; live = []; stored = null; events = [];
+  $('bErr').textContent = 'Connecting…';
+  const device = b.device || 'phygital-01';
+  src = new MqttSource({ ...b, device });
+  try {
+    await src.connect(handlers);
+    $('connect').hidden = true;
+    $('brokerNote').textContent = b.url.replace(/^wss?:\/\//, '').replace(/\/mqtt$/, '');
+    $('btnSave').disabled = $('btnPreview').disabled = false;
+    setTimeout(pickDevice, 1500);                 // retained messages tell us which devices exist
+    loadHistory();
+  } catch (e) { src = null; showConnect(e.message); }
+}
+
+function renderDevices() {
+  const sel = $('devSel'), cur = src?.o.device;
+  const ids = [...devices.keys()].sort();
+  if (cur && !ids.includes(cur)) ids.unshift(cur);
+  sel.innerHTML = '';
+  for (const id of ids) {
+    const o = document.createElement('option'), d = devices.get(id);
+    o.value = id; o.textContent = `${id}${d?.status ? ' · ' + d.status : ''}`; o.selected = id === cur;
+    sel.append(o);
+  }
+}
+function pickDevice() {                            // if the saved device isn't there, follow the first one that is
+  if (!src || devices.has(src.o.device) || !devices.size) return;
+  selectDevice([...devices.keys()].sort()[0]);
+}
+function selectDevice(id) {
+  info = { recorder_online: info.recorder_online }; state = {}; updated = {}; live = []; stored = null; events = [];
+  $('msgs').textContent = '';
+  src.setDevice(id);
+  saveBroker({ ...loadBroker(), device: id });
+  renderDevices(); renderReadings({}); renderSummary(); renderHealth(); loadHistory();
+}
+$('devSel').onchange = e => selectDevice(e.target.value);
+
+// ---------------- history ----------------
+async function loadHistory() {
+  if (!src?.recorder) { renderCharts(); renderEvents(); return; }
+  try {
+    const [p, e] = await Promise.all([src.history('points', Date.now() - span * 1000), src.history('events', Date.now() - 7 * 86400e3)]);
+    stored = p; events = e;
+  } catch (err) { stored = null; }
+  renderCharts(); renderEvents();
+}
+document.querySelectorAll('#ranges button').forEach(b => b.onclick = () => {
+  span = +b.dataset.s;
+  document.querySelectorAll('#ranges button').forEach(x => x.classList.toggle('on', x === b));
+  loadHistory();
+});
+setInterval(() => { renderCharts(); renderAges(); }, 2000);
+setInterval(() => { if (src?.recorder) loadHistory(); }, 30000);
+
+$('btnStored').onclick = async () => {
+  if (!src?.recorder) return alert('The recorder is not running, so there are no stored messages.');
+  try {
+    const rows = await src.history('raw', Date.now() - 86400e3);
+    $('msgs').textContent = '';
+    for (const r of rows.reverse()) addMsg(r.t, `${src.o.root}/${src.o.device}/${r.topic}`, r.json);
+  } catch (e) { alert(e.message); }
+};
+
+// ---------------- settings ----------------
+function renderSettings() {
+  if (document.activeElement?.closest('#setForm')) return;   // don't overwrite while editing
+  if (info.active_perimeter_m != null) $('sPer').value = info.active_perimeter_m;
+  if (info.active_volume != null) $('sVol').value = info.active_volume;
+  if (info.active_alarm_on != null) $('sAlarm').checked = info.active_alarm_on;
+  if (info.active_led_on != null) $('sLed').checked = info.active_led_on;
+}
+$('setForm').onsubmit = e => {
+  e.preventDefault();
+  if (!src) return;
+  src.sendConfig({ perimeter_m: +$('sPer').value, volume: +$('sVol').value, alarm_on: $('sAlarm').checked, led_on: $('sLed').checked });
+  $('setNote').textContent = 'Sent. The values update when the device confirms.';
+  document.activeElement?.blur();
+  setTimeout(() => { $('setNote').textContent = ''; }, 5000);
+};
+$('btnPreview').onclick = () => src?.preview();
+
+// ---------------- rendering ----------------
+const ago = t => { if (!t) return '—'; const s = Math.round((Date.now() - t) / 1000); return s < 60 ? `${s}s ago` : s < 3600 ? `${Math.round(s / 60)}m ago` : `${Math.round(s / 3600)}h ago`; };
+const yes = (v, good = 'ok', bad = 'failed') => v == null ? '—' : v ? `<span class="good">${good}</span>` : `<span class="badv">${bad}</span>`;
+function kv(el, rows) { $(el).innerHTML = rows.map(([k, v]) => `<div>${k}</div><div>${v}</div>`).join(''); }
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+function renderHealth() {
+  const d = devices.get(src?.o.device);
+  const online = info.device_online ?? (d?.status === 'online' ? true : d?.status === 'offline' ? false : null);
+  const pill = $('devPill');
+  pill.className = 'pill ' + (online ? 'ok' : online === false ? 'bad' : '');
+  pill.querySelector('span').textContent = src ? `${src.o.device} ${online ? 'online' : online === false ? 'offline' : '…'}` : 'No device';
+  const rp = $('recPill');
+  rp.className = 'pill ' + (info.recorder_online ? 'ok' : src ? 'bad' : '');
+  rp.querySelector('span').textContent = info.recorder_online ? 'Recorder running' : src ? 'Recorder offline' : 'Recorder';
+  const rssi = info.wifi_rssi_dbm;
+  kv('health', [
+    ['Status', online ? '<span class="good">online</span>' : online === false ? '<span class="badv">offline</span>' : '—'],
+    ['Last message', esc(ago(d?.seen))],
+    ['Firmware', esc(info.firmware ?? '—')], ['Board', esc(info.board ?? '—')], ['MAC address', esc(info.mac_address ?? '—')],
+    ['Wi-Fi signal', rssi ? `${rssi} dBm ${rssi > -67 ? '(good)' : rssi > -75 ? '(ok)' : '(weak)'}` : '—'],
+    ['Radar 1 / 2 / 3', [1, 2, 3].map(i => yes(info[`radar${i}_online`], 'on', 'off')).join(' / ')],
+    ['Microphone', yes(info.mic_ok)], ['Speaker', yes(info.speaker_ok)], ['Footstep AI', yes(info.sound_ai_ok)], ['PSRAM', yes(info.psram_ok)],
+  ]);
+}
+function renderSummary() {
+  const z = state.perimeter;
+  kv('summary', [
+    ['Perimeter', z === 'inside' ? `<span class="badv">someone inside</span>${state.nearest_m != null ? ' · ' + state.nearest_m.toFixed(2) + ' m' : ''}` : esc(z ?? '—')],
+    ['Armed', info.active_alarm_on == null ? '—' : info.active_alarm_on ? 'yes' : 'no'],
+    ['Alarm radius', info.active_perimeter_m != null ? `${info.active_perimeter_m} m` : '—'],
+    ['Sound', state.sound_label ? `${esc(state.sound_label)} (${Math.round((state.sound_score ?? 0) * 100)}%)` : '—'],
+    ['Footsteps', state.footsteps === 1 ? '<span class="badv">yes</span>' : state.footsteps === 0 ? 'no' : '—'],
+    ['LED', esc(state.led ?? '—')],
+  ]);
+}
+
+const GROUPS = [
+  ['Radar 1', ['r1_state', 'r1_dist_m', 'r1_speed_mps', 'r1_dir', 'r1_energy']],
+  ['Radar 2', ['r2_state', 'r2_dist_m', 'r2_speed_mps', 'r2_dir', 'r2_energy']],
+  ['Radar 3', ['r3_state', 'r3_dist_m', 'r3_speed_mps', 'r3_dir', 'r3_energy']],
+  ['Perimeter & LED', ['perimeter', 'nearest_m', 'led']],
+  ['Sound model', ['sound_label', 'sound_score', 'footsteps']],
+  ['Microphone', ['mic_state', 'mic_level', 'mic_peak_hz']],
+];
+function renderReadings(delta) {
+  if (!Object.keys(state).length) { $('readings').innerHTML = '<div class="empty">No readings yet.</div>'; return; }
+  $('readings').innerHTML = GROUPS.map(([name, keys]) => `<div class="group"><h3>${name}</h3><table>${keys.map(k =>
+    `<tr><td>${k}</td><td class="${k in delta ? 'flash' : ''}">${state[k] ?? '—'}</td><td class="age" data-k="${k}">${ago(updated[k])}</td></tr>`).join('')}</table></div>`).join('');
+}
+function renderAges() {
+  document.querySelectorAll('td.age[data-k]').forEach(td => td.textContent = ago(updated[td.dataset.k]));
+  const last = Math.max(0, ...Object.values(updated));
+  $('readAge').textContent = last ? `last update ${ago(last)}` : '';
+  if (devices.size) renderHealth();
+}
+
+function chart(svg, series, { max, ticks, unit = '', dots }) {
+  const w = svg.clientWidth || 800, h = svg.clientHeight || 190, padL = 40, padB = 18, padT = 6;
+  const now = Date.now(), t0 = now - span * 1000;
+  const lastStored = stored?.length ? stored[stored.length - 1].t : 0;
+  const pts = [...(stored || []), ...live.filter(p => p.t > lastStored)].filter(p => p.t >= t0);
+  const gap = Math.max(5000, span * 1000 / 300) * 2.5;
+  const x = t => padL + (t - t0) / (span * 1000) * (w - padL - 6);
+  const y = v => padT + (1 - Math.min(v, max) / max) * (h - padT - padB);
+  let s = '';
+  for (const v of ticks) s += `<line x1="${padL}" x2="${w - 6}" y1="${y(v)}" y2="${y(v)}" stroke="#EEEDE5"/><text x="${padL - 6}" y="${y(v) + 4}" text-anchor="end" font-size="11" fill="#7E7C70">${v}${unit}</text>`;
+  const fmt = t => new Date(t).toLocaleString([], span > 86400 ? { weekday: 'short', hour: 'numeric' } : { hour: 'numeric', minute: '2-digit' });
+  s += `<text x="${padL}" y="${h - 3}" font-size="11" fill="#7E7C70">${fmt(t0)}</text><text x="${w - 6}" y="${h - 3}" font-size="11" text-anchor="end" fill="#7E7C70">now</text>`;
+  for (const ser of series) {
+    let d = '', pen = false, lastT = 0;
+    for (const p of pts) {
+      const v = p[ser.key];
+      if (v == null || p.t - lastT > gap) pen = false;
+      if (v != null) { d += `${pen ? 'L' : 'M'}${x(p.t).toFixed(1)},${y(v).toFixed(1)}`; pen = true; }
+      lastT = p.t;
+    }
+    if (d) s += `<path d="${d}" fill="none" stroke="${ser.color}" stroke-width="${ser.width || 1.8}" ${ser.dash ? 'stroke-dasharray="5 4"' : ''} stroke-linejoin="round"/>`;
+  }
+  if (dots) for (const p of pts) if (p[dots]) s += `<circle cx="${x(p.t).toFixed(1)}" cy="${y(max * 0.95)}" r="3" fill="#E5A93A"/>`;
+  if (!pts.length) s += `<text x="${(w + padL) / 2}" y="${h / 2}" text-anchor="middle" font-size="13" fill="#7E7C70">No data in this range${src && !src.recorder ? ' (recorder offline: only live data)' : ''}</text>`;
+  svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+  svg.innerHTML = s;
+}
+function renderCharts() {
+  chart($('chDist'), [{ key: 'perimeter', color: 'var(--per)', dash: true, width: 1.5 }, { key: 'r1', color: 'var(--c1)' }, { key: 'r2', color: 'var(--c2)' }, { key: 'r3', color: 'var(--c3)' }],
+        { max: MAX_M, ticks: [0, 3, 6, 9], unit: ' m' });
+  const all = [...(stored || []), ...live].map(p => p.mic || 0);
+  const top = Math.max(1000, Math.ceil(Math.max(0, ...all) / 1000) * 1000);
+  chart($('chMic'), [{ key: 'mic', color: 'var(--c1)', width: 1.4 }], { max: top, ticks: [0, top / 2, top] });
+  chart($('chSound'), [{ key: 'sound_score', color: 'var(--c3)', width: 1.4 }], { max: 1, ticks: [0, 0.5, 1], dots: 'footsteps' });
+}
+function renderEvents() {
+  $('events').innerHTML = events.length
+    ? events.map(e => `<tr><td>${new Date(e.t).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', second: '2-digit' })}</td><td><span class="dot ${esc(e.kind)}"></span>${esc(e.text)}</td></tr>`).join('')
+    : `<tr><td colspan="2" class="empty">${src?.recorder ? 'No events in the last 7 days.' : 'Events need the recorder running.'}</td></tr>`;
+}
+function addMsg(t, topic, text) {
+  const tb = $('msgs'), tr = document.createElement('tr');
+  tr.innerHTML = `<td class="when">${new Date(t).toLocaleTimeString()}</td><td>${esc(topic.split('/').slice(1).join('/'))}</td><td>${esc(text)}</td>`;
+  tb.prepend(tr);
+  while (tb.children.length > 200) tb.lastChild.remove();
+}
+
+// ---------------- start ----------------
+renderHealth(); renderCharts(); renderEvents();
+const saved = loadBroker();
+if (saved.url) connect(saved); else showConnect();
+</script>
+</body>
+</html>

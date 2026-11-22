@@ -1,0 +1,9 @@
+{
+  "mqttUrl": "mqtts://your-deployment.emqxsl.com:8883",
+  "username": "phygital-recorder",
+  "password": "YOUR_RECORDER_PASSWORD",
+  "topicRoot": "phygital",
+  "db": "phygital.db",
+  "keepDays": 30,
+  "keepRawDays": 2
+}

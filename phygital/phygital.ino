@@ -1,27 +1,40 @@
-// Phygital motion alarm (ESP32 Dev Module)
+// Phygital motion alarm (ESP32-S3-DevKitC-1-N8R2)
 //   3x DFRobot C4002 radar + INMP441 mic + Edge Impulse footsteps model
 //   + RGB LED + MAX98357A speaker, reporting over Wi-Fi/MQTT (see mqtt_link.h).
 //
 // LED:     RED = someone coming closer, GREEN = going away, BLUE = same distance, OFF = nobody
 // Speaker: entry beep when someone walks into the perimeter, then beeps that speed up as they approach
-// Remote settings (ThingsBoard shared attributes): perimeter_m, volume, alarm_on, led_on
+// Remote settings (MQTT topic phygital/<id>/settings, or USB): perimeter_m, volume, alarm_on, led_on
 //
-// Wiring
-//   Radar 1: TX->D35, RX->D14   Radar 2: TX->D34, RX->D26   Radar 3: OUT->VP (GPIO36)
-//   All radars: VCC->5V, GND->GND
-//   Mic: SCK->D32, SD->D33, WS->D25, L/R->GND, VDD->3V3 (or D13)
-//   LED: R->220R->D21, G->220R->D18, B->220R->D19, common->GND
-//   Amp: Vin->5V, GND->GND, BCLK->D4, LRC->D16, DIN->D17, SD->5V, GAIN->100k->5V
+// Wiring (GPIO numbers; radar TX goes to the ESP32's RX pin and vice versa)
+//   Radar 1: TX->4,  RX->5     Radar 2: TX->6, RX->7     Radar 3: TX->15, RX->16
+//   All radars: VIN->5V rail, GND->GND rail (rails fed by a separate 5V supply; the S3 runs from USB)
+//   Mic: SCK->9, WS->10, SD->11, L/R->GND, VDD->3V3
+//   Amp: BCLK->47, LRC->39, DIN->21, Vin->5V rail, SD->Vin, GND->GND rail (not an S3 GND pin);
+//        GAIN unconnected (9 dB, set loudness with volume)
+//   LED: R->220R->1, G->220R->42, B->220R->41, common->GND
+//
+// Arduino IDE: Board "ESP32S3 Dev Module", USB Mode: Hardware CDC and JTAG, USB CDC On Boot: Enabled, Flash Size: 8MB,
+//   Partition Scheme: 8M with spiffs, PSRAM: QSPI PSRAM. Plug into the port labelled "USB".
+//   (Radar 3 uses UART0, so Serial must run over native USB instead.)
 //
 // The C4002 driver is bundled in this folder (with the required packed-struct fix).
+#if !CONFIG_IDF_TARGET_ESP32S3
+#error "This sketch is for the ESP32-S3: Tools > Board > ESP32S3 Dev Module"
+#endif
+#if !ARDUINO_USB_CDC_ON_BOOT
+#error "Set Tools > USB CDC On Boot > Enabled (radar 3 needs UART0)"
+#endif
 #include <Project_v2_footsteps_inferencing.h>   // Edge Impulse model (Add .ZIP Library)
 #include <ESP_I2S.h>
 #include <arduinoFFT.h>
 #include <Preferences.h>
+#include <esp_mac.h>
+#include <esp_system.h>
 #include "DFRobot_C4002.h"
 #include "mqtt_link.h"
 
-const char* FW_VERSION = "0.3.0";
+const char* FW_VERSION = "0.5.0-s3";
 
 // Types (must be at the top for Arduino IDE)
 const int HIST = 8;               // distance history: 8 readings x 0.2 s = ~1.6 s
@@ -42,11 +55,10 @@ enum LedColor { OFF, RED, GREEN, BLUE };
 // ================= REMOTE SETTINGS (defaults; MQTT can change them) =================
 struct Config {
   float perimeterM = 6.0;         // perimeter radius for the speaker alarm (m)
-  float volume     = 0.02;        // 0-0.5; 0.02 is very quiet
+  float volume     = 0.01;        // speaker loudness, 0-1.0 (0.01 is very quiet; each doubling is ~6 dB louder)
   bool  alarmOn    = true;        // speaker on/off
   bool  ledOn      = true;        // LED on/off
 } cfg;
-const char* CONFIG_KEYS = "perimeter_m,volume,alarm_on,led_on";
 
 // ================= FIXED SETTINGS =================
 const bool  INCLUDE_STILL = false;       // alarm: false = only MOVING people count
@@ -63,7 +75,7 @@ const unsigned long PUBLISH_MS   = 1000;   // send changed values once per secon
 const unsigned long HEARTBEAT_MS = 30000;  // send everything every 30 s
 
 // ================= LED =================
-const int LED_RED = 21, LED_GREEN = 18, LED_BLUE = 19;
+const int LED_RED = 1, LED_GREEN = 42, LED_BLUE = 41;
 const unsigned long LED_HOLD_MS = 500;
 LedColor currentColor = OFF;
 unsigned long colorSince = 0;
@@ -84,7 +96,7 @@ void setLed(LedColor c) {
 }
 
 // ================= SPEAKER =================
-const int AMP_BCLK = 4, AMP_LRC = 16, AMP_DIN = 17, AMP_RATE = 16000;
+const int AMP_BCLK = 47, AMP_LRC = 39, AMP_DIN = 21, AMP_RATE = 16000;
 I2SClass amp;
 bool ampOK = false;
 
@@ -110,10 +122,15 @@ void beep(int freq = BEEP_HZ, int ms = BEEP_MS) {
 }
 
 // ================= RADARS =================
-DFRobot_C4002 radar1(&Serial1, 115200, 35, 14);   // RX 35, TX 14
-DFRobot_C4002 radar2(&Serial2, 115200, 34, 26);   // RX 34, TX 26
-const int RADAR3_OUT = 36;                         // VP
-RadarInfo r1, r2;
+// The S3 has three UARTs; radar 3 takes UART0 (Serial0) because Serial runs over native USB.
+const int NUM_RADARS = 3;
+HardwareSerial* radarPort[NUM_RADARS] = { &Serial1, &Serial2, &Serial0 };
+DFRobot_C4002 radars[NUM_RADARS] = {
+  DFRobot_C4002(radarPort[0], 115200, 4, 5),      // ESP RX 4, TX 5
+  DFRobot_C4002(radarPort[1], 115200, 6, 7),      // ESP RX 6, TX 7
+  DFRobot_C4002(radarPort[2], 115200, 15, 16),    // ESP RX 15, TX 16
+};
+RadarInfo r[NUM_RADARS];
 
 void addHistory(RadarInfo &r, float d) {
   r.histD[r.histPos] = d;
@@ -179,7 +196,7 @@ bool setupRadar(DFRobot_C4002 &radar, const char* name) {
     Serial.printf("%s not found, retrying...\n", name);
     delay(1000);
   }
-  Serial.printf("%s FAILED - check its TX/RX, VCC, GND\n", name);
+  Serial.printf("%s FAILED - check its TX/RX, VIN (5V), GND\n", name);
   return false;
 }
 
@@ -202,7 +219,7 @@ bool inPerimeter(const RadarInfo &r) {
 }
 
 // ================= MICROPHONE + SOUND AI =================
-const int MIC_SCK = 32, MIC_SD = 33, MIC_WS = 25, MIC_PWR = 13;
+const int MIC_SCK = 9, MIC_WS = 10, MIC_SD = 11;
 const int SAMPLE_RATE = EI_CLASSIFIER_FREQUENCY;     // 44100 Hz, what the model was trained on
 const int N = 512;
 I2SClass i2s;
@@ -316,10 +333,10 @@ bool takeBool(JsonObjectConst c, const char* k, bool &b) {
   b = c[k].as<bool>(); return true;
 }
 
-// Called by mqtt_link.h when settings arrive. Unknown keys are ignored.
+// Applies settings from MQTT or USB. Unknown keys are ignored.
 void onRemoteConfig(JsonObjectConst c) {
   bool changed = takeFloat(c, "perimeter_m", cfg.perimeterM, 1.5, 11.0)
-               | takeFloat(c, "volume",      cfg.volume,     0.0, 0.5)
+               | takeFloat(c, "volume",      cfg.volume,     0.0, 1.0)
                | takeBool (c, "alarm_on",    cfg.alarmOn)
                | takeBool (c, "led_on",      cfg.ledOn);
   if (changed) configChanged = true;               // saved + reported from loop()
@@ -355,11 +372,10 @@ void addRadar(JsonDocument &doc, const char* p, const RadarInfo &r, bool full) {
   if (full) { snprintf(k, sizeof(k), "%s_energy", p); doc[k] = r.energy; }
 }
 
-void publishTelemetry(bool r3, const char* zone, float nearest, bool full) {
+void publishTelemetry(const char* zone, float nearest, bool full) {
   JsonDocument doc;
-  addRadar(doc, "r1", r1, full);
-  addRadar(doc, "r2", r2, full);
-  addIfChanged(doc, "r3_detected", r3 ? 1 : 0, full);
+  char p[4];
+  for (int i = 0; i < NUM_RADARS; i++) { snprintf(p, sizeof(p), "r%d", i + 1); addRadar(doc, p, r[i], full); }
   addIfChanged(doc, "perimeter", zone, full);
   if (strcmp(zone, "inside") == 0) addIfChanged(doc, "nearest_m", round2(nearest), full);
   addIfChanged(doc, "mic_state", micWord(pubMicLevel), full);
@@ -379,18 +395,20 @@ void publishTelemetry(bool r3, const char* zone, float nearest, bool full) {
   char buf[768];
   size_t n = serializeJson(doc, buf, sizeof(buf));
   mqttSendTelemetry(buf, n);
+  Serial.printf("@T %s\n", buf);   // same data over USB, for the web app
 }
 
-// Device info + the settings currently in use (prefixed "active_" so they
-// don't clash with the shared attributes that set them)
+// Device info + the settings currently in use (prefixed "active_"), published retained on .../info
 void sendDeviceInfo() {
   JsonDocument doc;
   doc["firmware"] = FW_VERSION;
-  doc["board"] = "ESP32 Dev Module";
-  doc["mac_address"] = WiFi.macAddress();
+  doc["board"] = "ESP32-S3-DevKitC-1-N8R2";
+  doc["mac_address"] = wifiMac();
   doc["wifi_rssi_dbm"] = WiFi.RSSI();
-  doc["radar1_online"] = r1.online;
-  doc["radar2_online"] = r2.online;
+  doc["radar1_online"] = r[0].online;
+  doc["radar2_online"] = r[1].online;
+  doc["radar3_online"] = r[2].online;
+  doc["psram_ok"] = psramFound();
   doc["mic_ok"] = micOK;
   doc["speaker_ok"] = ampOK;
   doc["sound_ai_ok"] = aiOK;
@@ -400,20 +418,74 @@ void sendDeviceInfo() {
   doc["active_led_on"] = cfg.ledOn;
   char buf[512];
   size_t n = serializeJson(doc, buf, sizeof(buf));
-  mqttSendAttributes(buf, n);
+  mqttSendInfo(buf, n);
+  Serial.printf("@A %s\n", buf);   // same data over USB, for the web app
+}
+
+// ================= COMMANDS (from MQTT or USB) =================
+// A JSON object of settings, e.g. {"perimeter_m":4,"volume":0.02}, and/or commands:
+// {"hello":true} asks for a full snapshot; {"preview":true} plays one beep at the
+// current volume (even when the alarm is off).
+void handleCommand(JsonObjectConst c) {
+  if (c["hello"].is<bool>()) { forceFull = true; sendDeviceInfo(); }
+  if (c["preview"].is<bool>() && ampOK) { ampTone(BEEP_HZ, 300); ampTone(0, 100); }   // "Preview sensor volume"
+  onRemoteConfig(c);
+}
+
+// The settings in use, published (retained) so the broker's copy matches the device
+void sendSettings() {
+  JsonDocument doc;
+  doc["perimeter_m"] = cfg.perimeterM;
+  doc["volume"]      = cfg.volume;
+  doc["alarm_on"]    = cfg.alarmOn;
+  doc["led_on"]      = cfg.ledOn;
+  char buf[160];
+  size_t n = serializeJson(doc, buf, sizeof(buf));
+  mqttSendSettings(buf, n);
+}
+
+// USB: one JSON object per line, same as MQTT messages (used by the web app over USB)
+void readUsbCommands() {
+  static char line[256];
+  static size_t len = 0;
+  while (Serial.available()) {
+    char ch = Serial.read();
+    if (ch != '\n' && ch != '\r') { if (len < sizeof(line) - 1) line[len++] = ch; continue; }
+    if (len == 0) continue;
+    line[len] = 0; len = 0;
+    JsonDocument doc;
+    if (deserializeJson(doc, line) || !doc.is<JsonObject>()) continue;
+    handleCommand(doc.as<JsonObjectConst>());
+  }
 }
 
 void onMqttConnect() { sendDeviceInfo(); forceFull = true; }
 
 void printConfig() {
-  Serial.printf("Settings: perimeter %.1f m, volume %.2f, alarm %s, LED %s\n",
+  Serial.printf("Settings: perimeter %.1f m, volume %.3f, alarm %s, LED %s\n",
                 cfg.perimeterM, cfg.volume, cfg.alarmOn ? "on" : "off", cfg.ledOn ? "on" : "off");
+}
+
+// Wi-Fi MAC read straight from the chip (WiFi.macAddress() can return zeros before Wi-Fi starts)
+String wifiMac() {
+  uint8_t m[6];
+  esp_read_mac(m, ESP_MAC_WIFI_STA);
+  char b[18];
+  snprintf(b, sizeof(b), "%02X:%02X:%02X:%02X:%02X:%02X", m[0], m[1], m[2], m[3], m[4], m[5]);
+  return String(b);
 }
 
 // ================= SETUP =================
 void setup() {
   Serial.begin(115200);
-  delay(500);
+  Serial.setTxTimeoutMs(0);          // don't stall when no computer is reading the USB port
+  delay(1500);                       // give the USB serial port time to appear
+  {
+    const char* why[] = {"unknown","power on","external pin","software restart","crash (panic)","interrupt watchdog",
+                         "task watchdog","other watchdog","deep sleep","brownout (power dipped)","SDIO","USB","JTAG"};
+    int rr = esp_reset_reason();
+    Serial.printf("\nStarted after: %s\n", (rr >= 0 && rr <= 12) ? why[rr] : "unknown");
+  }
   loadConfig();
 
   pinMode(LED_RED, OUTPUT); pinMode(LED_GREEN, OUTPUT); pinMode(LED_BLUE, OUTPUT);
@@ -424,29 +496,28 @@ void setup() {
   Serial.println(ampOK ? "Speaker ready." : "Speaker FAILED - check BCLK, LRC, DIN");
   if (ampOK) ampTone(0, 100);
 
-  // Sound AI buffer (88 KB): allocate before Wi-Fi takes memory
-  aiBuf = (int16_t*)calloc(AI_WINDOW, sizeof(int16_t));
+  // Sound AI buffer (88 KB): in PSRAM if enabled, otherwise internal RAM
+  aiBuf = psramFound() ? (int16_t*)ps_calloc(AI_WINDOW, sizeof(int16_t))
+                       : (int16_t*)calloc(AI_WINDOW, sizeof(int16_t));
   aiOK = (aiBuf != NULL);
+  Serial.printf("PSRAM: %s\n", psramFound() ? "found" : "NOT found (Tools > PSRAM > QSPI PSRAM)");
   Serial.println(aiOK ? "Sound AI ready." : "Sound AI FAILED - not enough memory");
 
-  pinMode(MIC_PWR, OUTPUT);
-  digitalWrite(MIC_PWR, HIGH);       // powers the mic if VDD is on D13 (harmless otherwise)
-  delay(200);
   i2s.setPins(MIC_SCK, MIC_WS, -1, MIC_SD);
   micOK = i2s.begin(I2S_MODE_STD, SAMPLE_RATE, I2S_DATA_BIT_WIDTH_32BIT, I2S_SLOT_MODE_STEREO, I2S_STD_SLOT_BOTH);
   if (micOK) for (int k = 0; k < 5; k++) i2s.readBytes((char*)micBuf, sizeof(micBuf));
   Serial.println(micOK ? "Mic ready." : "Mic FAILED - check SCK, WS, SD");
 
-  Serial1.setRxBufferSize(1024);
-  Serial2.setRxBufferSize(1024);
-  r1.online = setupRadar(radar1, "Radar 1");
-  r2.online = setupRadar(radar2, "Radar 2");
-  pinMode(RADAR3_OUT, INPUT);
-  Serial.println("Radar 3 on OUT pin (detect only).");
+  for (int i = 0; i < NUM_RADARS; i++) {
+    char name[10];
+    snprintf(name, sizeof(name), "Radar %d", i + 1);
+    radarPort[i]->setRxBufferSize(1024);
+    r[i].online = setupRadar(radars[i], name);
+  }
 
   WiFi.mode(WIFI_STA);
-  Serial.printf("Wi-Fi MAC address: %s\n", WiFi.macAddress().c_str());
-  mqttBegin(CONFIG_KEYS, onRemoteConfig, onMqttConnect);
+  Serial.printf("Wi-Fi MAC address: %s   <- register this one\n", wifiMac().c_str());
+  mqttBegin(handleCommand, onMqttConnect);
 
   printConfig();
   beep(1500, 60);                    // "armed"
@@ -462,26 +533,24 @@ float nearest = 0;
 void loop() {
   readMic();
   runSoundAI();                      // about once per second, takes a moment
-  if (r1.online) pollRadar(radar1, Serial1, r1);
-  if (r2.online) pollRadar(radar2, Serial2, r2);
-  bool r3 = (digitalRead(RADAR3_OUT) == HIGH);
+  for (int i = 0; i < NUM_RADARS; i++)
+    if (r[i].online) pollRadar(radars[i], *radarPort[i], r[i]);
 
-  // ---- LED: direction of movement, from either radar ----
-  Motion m1 = motionOf(r1), m2 = motionOf(r2);
-  if (m1 == CLOSER || m2 == CLOSER)    setLed(RED);
-  else if (m1 == AWAY || m2 == AWAY)   setLed(GREEN);
-  else if (m1 == SAME || m2 == SAME)   setLed(BLUE);
-  else                                 setLed(OFF);
+  // ---- LED: direction of movement, from any radar ----
+  Motion m[NUM_RADARS];
+  bool closer = false, away = false, same = false, insideNow = false;
+  for (int i = 0; i < NUM_RADARS; i++) {
+    m[i] = motionOf(r[i]);
+    closer |= m[i] == CLOSER; away |= m[i] == AWAY; same |= m[i] == SAME;
+  }
+  setLed(closer ? RED : away ? GREEN : same ? BLUE : OFF);
 
   // ---- Speaker: perimeter alarm ----
-  bool in1 = inPerimeter(r1), in2 = inPerimeter(r2);
-  bool insideNow = in1 || in2;
-  if (insideNow) {
-    nearest = cfg.perimeterM;
-    if (in1) nearest = min(nearest, r1.dist);
-    if (in2) nearest = min(nearest, r2.dist);
-    lastInside = millis();
-  }
+  float nearNow = cfg.perimeterM;
+  for (int i = 0; i < NUM_RADARS; i++)
+    if (inPerimeter(r[i])) { insideNow = true; nearNow = min(nearNow, r[i].dist); }
+  if (insideNow) { nearest = nearNow; lastInside = millis(); }
+
   if (insideNow && !occupied) {
     occupied = true;
     Serial.printf(">>> Someone ENTERED the perimeter at %.2f m\n", nearest);
@@ -503,25 +572,28 @@ void loop() {
   // ---- Status line every 0.25 s ----
   if (millis() - lastPrint >= 250) {
     lastPrint = millis();
-    Serial.printf("Perimeter: %-7s | R1: %-8s %5.2fm | R2: %-8s %5.2fm | R3: %s | Mic: %5d %-5s | Sound: %s %3.0f%%\n",
-                  zone, motionWord(m1), r1.dist, motionWord(m2), r2.dist, r3 ? "DETECTED" : "nothing",
+    Serial.printf("Perimeter: %-7s |", zone);
+    for (int i = 0; i < NUM_RADARS; i++) Serial.printf(" R%d: %-8s %5.2fm |", i + 1, motionWord(m[i]), r[i].dist);
+    Serial.printf(" Mic: %5d %-5s | Sound: %s %3.0f%%\n",
                   micLevel, micWord(micLevel), aiHuman ? "FOOTSTEPS" : aiLabel, aiScore * 100);
     if (micLevel > pubMicLevel) { pubMicLevel = micLevel; pubMicHz = micPeakHz; }
     micLevel = 0;
   }
 
-  // ---- MQTT ----
+  // ---- MQTT + USB ----
+  readUsbCommands();
   mqttLoop();
   if (configChanged) {
     configChanged = false;
     saveConfig();
     printConfig();
     sendDeviceInfo();
+    sendSettings();
   }
   if (millis() - lastPublish >= PUBLISH_MS) {
     lastPublish = millis();
     bool full = forceFull || millis() - lastHeartbeat >= HEARTBEAT_MS;
     if (full) { lastHeartbeat = millis(); forceFull = false; }
-    publishTelemetry(r3, zone, nearest, full);
+    publishTelemetry(zone, nearest, full);
   }
 }

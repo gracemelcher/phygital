@@ -1,0 +1,7 @@
+{
+  "mqttUrl": "mqtt://localhost:1883",
+  "username": "",
+  "password": "",
+  "topicRoot": "phygital",
+  "db": "phygital-local.db"
+}

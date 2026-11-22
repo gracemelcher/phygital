@@ -1,0 +1,15 @@
+{
+  "name": "phygital-server",
+  "private": true,
+  "type": "module",
+  "description": "Recorder (stores device history) and a device simulator for the phygital app",
+  "scripts": {
+    "recorder": "node recorder.mjs",
+    "simulate": "node simulate.mjs",
+    "broker": "mosquitto -c mosquitto-dev.conf"
+  },
+  "engines": { "node": ">=22.5" },
+  "dependencies": {
+    "mqtt": "5.10.1"
+  }
+}

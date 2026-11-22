@@ -1,3 +1,8 @@
 phygital/secrets.h
 .venv/
 .DS_Store
+phygital/build/
+server/node_modules/
+server/config.json
+server/*.db
+server/*.db-*
