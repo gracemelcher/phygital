@@ -117,7 +117,9 @@ Telemetry values are sent when they change (checked every second), plus everythi
 
 ## Web app
 
-Serve the `app/` folder and open it in a browser:
+Published at <https://gracemelcher.github.io/phygital/> (phone app) and <https://gracemelcher.github.io/phygital/admin.html> (admin). `.github/workflows/pages.yml` republishes `app/` whenever it changes on `main`; it needs repo **Settings → Pages → Source: GitHub Actions** turned on once.
+
+To run it locally instead, serve the `app/` folder and open it in a browser:
 
 ```bash
 python3 -m http.server 8000 --directory app
